@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package mission;
+
+import "item.proto";
+
+message MArchives {
+  repeated uint64 archive = 1;
+}
+
+message MStates {
+  repeated MissionState states = 1;
+}
+
+message Mission {
+  repeated MissionState in_progress = 1;
+  MArchives success = 2;
+}
+
+message MissionCompleteResponse {
+  MArchives archives = 1;
+  repeated MissionState in_progress = 2;
+  repeated item.Item rewards = 3;
+  repeated item.Item final_items = 4;
+}
+
+message MissionList {
+  repeated int32 id = 1;
+}
+
+message MissionState {
+  int32 id = 1;
+  int32 value = 2;
+  int64 expired_unix = 3;
+}

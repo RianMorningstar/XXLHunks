@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package store;
+
+import "item.proto";
+
+message GetStoreResponse {
+  repeated Store stores = 1;
+}
+
+message PieceChangeResponse {
+  repeated item.Item pieces = 1;
+  item.Item serums = 2;
+}
+
+message ProductRec {
+  int32 product_id = 1;
+  int32 group_id = 2;
+  int32 item_id = 3;
+  int32 quantity = 4;
+  int32 item_amount = 5;
+  int32 price = 6;
+}
+
+message Store {
+  int32 store_id = 1;
+  int32 refresh_times = 2;
+  repeated ProductRec products = 3;
+}
+
+message StoreBuyRequest {
+  int32 store_id = 1;
+  int32 product_id = 2;
+  int32 quantity = 3;
+}
+
+message StoreBuyResponse {
+  repeated item.Item final_coin = 1;
+  repeated item.Item final_items = 2;
+  repeated item.ItemList goods = 3;
+  int32 code = 4;
+}
+
+message StoreRefreshRequest {
+  int32 store_id = 1;
+  bool use_item = 2;
+  int32 count = 3;
+}
+
+message StoreRefreshResponse {
+  Store store = 1;
+  repeated item.Item remaining_item = 2;
+  int32 refresh_count = 3;
+}

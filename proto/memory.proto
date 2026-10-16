@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package memory;
+
+message GetAvgRecListResponse {
+  repeated int32 avg_list = 1;
+}
+
+message MemoriesRec {
+  uint32 memories_id = 1;
+  repeated uint32 stage_id = 2;
+  repeated MemoriesRec memories = 9;
+}
+
+message MemoryRecallRequest {
+  int32 memory_id = 1;
+  int32 stage_id = 2;
+}
+
+message MemoryRecallResponse {
+  int32 code = 1;
+}

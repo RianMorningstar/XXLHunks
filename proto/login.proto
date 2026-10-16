@@ -1,0 +1,80 @@
+syntax = "proto3";
+
+package login;
+
+import "userinfo.proto";
+
+message AccInfo {
+  string accname = 1;
+  string password = 2;
+  string token = 3;
+  int32 platform = 4;
+  int32 channel_id = 5;
+  bool is_bind = 6;
+}
+
+message AccResponse {
+  uint32 res_code = 1;
+  int64 id = 2;
+  string login_token = 3;
+}
+
+message BindingRequest {
+  string login_token = 1;
+  AccInfo acc_info = 2;
+  int64 id = 3;
+}
+
+message BindingResponse {
+  int32 res_code = 1;
+}
+
+message GameLogin {
+  string login_token = 1;
+  int64 id = 2;
+  bool force = 3;
+  string c_device = 4;
+  int32 area = 5;
+  int32 channel = 6;
+  int32 platform = 7;
+  int64 c_data_ver = 8;
+  int32 language = 9;
+}
+
+message GameLoginResponse {
+  string dcode = 1;
+  int64 expire = 2;
+  string token = 3;
+}
+
+message GenLinkCodeRequest {
+  string password = 1;
+}
+
+message GenLinkCodeResponse {
+  int32 res_code = 1;
+  string link_code = 2;
+  int64 exp = 3;
+}
+
+message LinkCodeInfo {
+  string link_code = 1;
+  string password = 2;
+  int32 channel = 3;
+  string accname = 4;
+}
+
+message LinkCodeResponse {
+  AccResponse acc_response = 1;
+  userinfo.UserBasicInfo now_acc = 2;
+  userinfo.UserBasicInfo ori_acc = 3;
+}
+
+message RefreshResponse {
+  int64 expire = 1;
+  string token = 2;
+}
+
+message UnauthorizedResponse {
+  string message = 1;
+}

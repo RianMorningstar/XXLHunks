@@ -1,0 +1,301 @@
+syntax = "proto3";
+
+package guild;
+
+import "guildbattle.proto";
+import "item.proto";
+import "mission.proto";
+
+message Guild {
+  int64 id = 1;
+  bool is_approval_required = 2;
+  string name = 3;
+  string bulletin = 4;
+  GuildIcon icon = 5;
+  int64 leader_id = 6;
+  int32 lv = 8;
+  int32 exp = 9;
+  int32 activity = 10;
+  int32 member_number = 11;
+  repeated Member members = 12;
+  repeated int64 tbd = 13;
+  repeated Log logs = 14;
+  int64 version = 15;
+  mission.Mission mission = 16;
+  int32 signin_number = 17;
+  GuildWishInfo wish_info = 18;
+  int32 mascot_id = 19;
+  int64 last_rename_unix = 20;
+  int32 donate_pool_lv = 21;
+  guildbattle.GuildDungeonInfo dungeon_info = 22;
+}
+
+message GuildAppliedsResponse {
+  repeated GuildSimpleInfo infos = 1;
+}
+
+message GuildAskPostInfoRequest {
+  int64 last_post_unix = 1;
+}
+
+message GuildAskPostInfoResponse {
+  int32 code = 1;
+  repeated GuildPost posts = 2;
+}
+
+message GuildCancelWishResponse {
+  int32 code = 1;
+  GuildWishInfo wish_info = 2;
+}
+
+message GuildCheckNewPostResponse {
+  int32 code = 1;
+}
+
+message GuildDonateLogInfo {
+  int64 donor_id = 1;
+  int64 donee_id = 2;
+  repeated int32 donate_star_counts = 3;
+  int64 date_unix = 4;
+}
+
+message GuildDonateLogInfoResponse {
+  int32 code = 1;
+  repeated GuildDonateLogInfo donor_logs = 2;
+  repeated GuildDonateLogInfo donee_logs = 3;
+  repeated GuildDonateLogInfo guild_donate_logs = 4;
+}
+
+message GuildDonatePool {
+  int32 lv = 1;
+  repeated int32 stars = 2;
+  int32 today_donated_count = 3;
+}
+
+message GuildDonateWishRequest {
+  int64 player_id = 1;
+  repeated int32 star_counts = 2;
+}
+
+message GuildDonateWishResponse {
+  int32 code = 1;
+  GuildWishInfo wish_info = 2;
+  item.Item get_items = 3;
+  repeated item.Item final_items = 4;
+}
+
+message GuildIcon {
+  int32 icon_id = 1;
+  int32 frame_id = 2;
+  int32 icon_main_color = 3;
+  int32 icon_second_color = 4;
+  int32 frame_color = 5;
+  int32 background_color = 6;
+}
+
+message GuildMakeWishRequest {
+  int32 item_id = 1;
+}
+
+message GuildMakeWishResponse {
+  int32 code = 1;
+}
+
+message GuildMemberAdjustRequest {
+  int64 member_id = 1;
+  uint32 title = 2;
+}
+
+message GuildMemberAdjustResponse {
+  uint32 code = 1;
+}
+
+message GuildMemberApplyRequest {
+  int64 guild_id = 1;
+}
+
+message GuildMemberApplyResponse {
+  uint32 code = 1;
+  string guild_name = 2;
+}
+
+message GuildMemberApproveRequest {
+  repeated int64 appliers = 1;
+}
+
+message GuildMemberApproveResponse {
+  uint32 code = 1;
+  repeated int64 members = 2;
+}
+
+message GuildMemberCancelRequest {
+  int64 guild_id = 1;
+}
+
+message GuildMemberCancelResponse {
+  uint32 code = 1;
+  string guild_name = 2;
+}
+
+message GuildMemberLeaveResponse {
+  int32 code = 1;
+  item.Item get_item = 2;
+  item.Item final_item = 3;
+}
+
+message GuildMemberListResponse {
+  int32 code = 1;
+  repeated Member members = 2;
+}
+
+message GuildMemberRejectRequest {
+  repeated int64 appliers = 1;
+}
+
+message GuildMemberRejectResponse {
+  uint32 code = 1;
+  repeated int64 rejected_ids = 2;
+}
+
+message GuildMemberRemoveRequest {
+  int64 member_id = 1;
+}
+
+message GuildMemberRemoveResponse {
+  uint32 code = 1;
+}
+
+message GuildNewRequest {
+  string name = 1;
+  string bulletin = 2;
+  GuildIcon icon = 3;
+  bool is_approval_required = 4;
+}
+
+message GuildNewResponse {
+  uint32 code = 1;
+  repeated item.Item remaining_item = 2;
+}
+
+message GuildPoolDonateRequest {
+  repeated int32 star_counts = 1;
+}
+
+message GuildPoolDonateResponse {
+  int32 code = 1;
+  item.Item get_items = 2;
+  repeated item.Item final_items = 3;
+  GuildDonatePool pool = 4;
+}
+
+message GuildPost {
+  int64 user_id = 1;
+  string content = 2;
+  int64 created = 3;
+}
+
+message GuildPostRequest {
+  string content = 1;
+  int64 last_post_unix = 2;
+}
+
+message GuildPostResponse {
+  int32 code = 1;
+  repeated GuildPost posts = 2;
+}
+
+message GuildReceiveWishResponse {
+  int32 code = 1;
+  item.Item get_items = 2;
+  item.Item final_items = 3;
+}
+
+message GuildSaveRequest {
+  int64 version = 1;
+}
+
+message GuildSaveResponse {
+  Guild guild = 1;
+  repeated item.Item signin_reward = 2;
+  repeated item.Item final_item = 3;
+}
+
+message GuildSearchRequest {
+  int64 guild_id = 1;
+  string guild_name = 2;
+}
+
+message GuildSearchResponse {
+  repeated GuildSimpleInfo infos = 1;
+}
+
+message GuildSettingMascotRequest {
+  int32 character_id = 1;
+}
+
+message GuildSettingMascotResponse {
+  int32 code = 1;
+}
+
+message GuildSettingNameRequest {
+  string name = 1;
+}
+
+message GuildSettingNameResponse {
+  uint32 code = 1;
+  item.Item remaining_item = 2;
+}
+
+message GuildSettingRequest {
+  string bulletin = 1;
+  GuildIcon icon = 2;
+  bool is_approval_required = 3;
+}
+
+message GuildSettingResponse {
+  uint32 code = 1;
+}
+
+message GuildSimpleInfo {
+  int64 id = 1;
+  GuildIcon icon = 2;
+  string name = 3;
+  string bulletin = 4;
+  int32 lv = 5;
+  int32 member_number = 6;
+  int32 activity = 7;
+  string leader_name = 8;
+  bool is_applied = 9;
+  bool is_approval_required = 10;
+  int32 donate_pool_lv = 11;
+}
+
+message GuildSimpleInfoRequest {
+  int64 guild_id = 1;
+}
+
+message GuildWishInfo {
+  int64 member_id = 1;
+  int32 item_id = 2;
+  repeated int32 star_counts = 3;
+  int32 today_donated_count = 4;
+}
+
+message GuildWishInfoResponse {
+  int32 code = 1;
+  repeated GuildWishInfo infos = 2;
+  GuildDonatePool pool = 3;
+}
+
+message Log {
+  int32 kind = 1;
+  int64 created = 2;
+  repeated int64 pra = 3;
+}
+
+message Member {
+  int64 id = 1;
+  int32 title = 2;
+  int32 activity = 3;
+  int32 week_activity = 4;
+}

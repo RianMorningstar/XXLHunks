@@ -1,0 +1,91 @@
+syntax = "proto3";
+
+package gacha;
+
+import "item.proto";
+import "model.proto";
+
+message GachaBuyTicketRequest {
+  int32 id = 1;
+  int32 count = 2;
+}
+
+message GachaBuyTicketResponse {
+  item.Item ticket = 1;
+  repeated item.Item last = 2;
+}
+
+message GachaExchangeRequest {
+  int32 id = 1;
+  model.CommonReward exchange = 2;
+}
+
+message GachaExchangeResponse {
+  model.CommonReward reward = 1;
+}
+
+message GachaGuaranteeRec {
+  int32 group_id = 1;
+  bool is_pu_round = 2;
+  int32 count = 3;
+}
+
+message GachaPreviewRequest {
+  int32 gacha_id = 1;
+  int32 char_id = 2;
+}
+
+message GachaPreviewResponse {
+  repeated item.Item rewards = 1;
+  repeated item.Item last_items = 2;
+}
+
+message GachaRec {
+  int32 id = 1;
+  int32 count = 2;
+  int32 free_cnt = 3;
+  int32 total_free_cnt = 4;
+  int32 no_ssr_cnt = 5;
+  int32 step_cnt = 6;
+  GachaWishList wish_list = 7;
+  bool closed = 8;
+  bool exchanged = 9;
+  repeated int32 previewed = 10;
+}
+
+message GachaRequest {
+  int32 id = 1;
+  int32 times = 2;
+  bool use_ticket = 3;
+  int32 guide_idx = 4;
+  bool free = 5;
+}
+
+message GachaResponse {
+  int32 cnt = 1;
+  repeated model.CommonReward rewards = 2;
+  int32 no_ssr_cnt = 3;
+  item.Item dividend = 4;
+  bool closed = 5;
+  int32 daily_free_cnt = 6;
+  int32 total_free_cnt = 7;
+  GachaGuaranteeRec guarantee_rec = 8;
+}
+
+message GachaSave {
+  repeated GachaRec gacha_recs = 1;
+  repeated GachaGuaranteeRec gacha_guarantee_recs = 2;
+}
+
+message GachaStepRewardResponse {
+  repeated StepReward step_rewards = 1;
+}
+
+message GachaWishList {
+  repeated int32 contents_id = 1;
+}
+
+message StepReward {
+  int32 count = 1;
+  model.CommonReward reward = 2;
+}

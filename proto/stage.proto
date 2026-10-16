@@ -1,0 +1,109 @@
+syntax = "proto3";
+
+package stage;
+
+import "battle.proto";
+import "character.proto";
+import "item.proto";
+
+message BuyChallengeTimesRequest {
+  int32 stage_type = 1;
+  bool use_item = 2;
+  int32 count = 3;
+}
+
+message BuyChallengeTimesResponse {
+  int32 purchase_times = 1;
+  repeated item.Item last_item = 2;
+  int32 ticket_exchange = 3;
+}
+
+message BuyEnergyRequest {
+  int32 item_id = 1;
+  int32 count = 2;
+  int32 use_count = 3;
+}
+
+message BuyEnergyResponse {
+  int32 purchase_times = 1;
+  repeated item.Item last_item = 2;
+}
+
+message BuyHardTimesRequest {
+  int32 chapter_id = 1;
+  int32 stage_id = 2;
+  bool use_item = 3;
+  int32 count = 4;
+}
+
+message BuyHardTimesResponse {
+  int32 purchase_times = 1;
+  repeated item.Item last_item = 2;
+  int32 ticket_exchange = 3;
+}
+
+message ChapterPrizeRequest {
+  int32 chapter_id = 1;
+  int32 flag = 2;
+}
+
+message ChapterPrizeResponse {
+  repeated item.Item prize = 1;
+}
+
+message DoStageRequest {
+  int32 chapter_id = 1;
+  int32 stage_id = 2;
+  int32 team_idx = 3;
+  int32 pass_ticket_num = 4;
+}
+
+message DoStageResponse {
+  string stage_sn = 1;
+  int32 rs = 5;
+}
+
+message DropBonus {
+  int32 item_id = 1;
+  double rate = 2;
+}
+
+message MultiBattleResetRequest {
+  int32 stage_id = 1;
+}
+
+message MultiBattleStatus {
+  int32 phase = 1;
+  repeated character.Chars used_char_id = 2;
+}
+
+message Rec {
+  int32 chapter_id = 1;
+  int32 stage_id = 2;
+  int32 flag = 3;
+  int32 played = 4;
+  MultiBattleStatus multi_battle_status = 5;
+  repeated DropBonus drop_bonus = 6;
+}
+
+message StageChallengeTimes {
+  int32 played_times = 1;
+  int32 purchase_times = 2;
+  int32 ticket_exchange = 3;
+}
+
+message StageOverRequest {
+  string stage_sn = 1;
+  battle.BattleResult battle_res = 3;
+  int32 guide_idx = 4;
+}
+
+message StageOverResponse {
+  bool first_clear = 1;
+  repeated item.ItemList reward_list = 2;
+  bool is_win = 3;
+  int32 flag = 4;
+  int32 play_times = 5;
+  repeated item.Item final_items = 6;
+  repeated DropBonus drop_bonus = 7;
+}

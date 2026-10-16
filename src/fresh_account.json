@@ -1,0 +1,76 @@
+{
+  "basic": {
+    "id": "0",
+    "name": "Woofer",
+    "title": 58001,
+    "pic": 61001,
+    "frame": 56001,
+    "homeRoleInfo": [{"id": 10000, "x": 0.0, "y": 0.0, "scale": 0.55}],
+    "showHomeRole": true,
+    "lv": 1,
+    "language": 2,
+    "homeBackgroundInfo": [{"id": 70001, "x": 0.0, "y": 0.0, "scale": 1.0}],
+    "charStickers": [{"stickers": []}, {"stickers": []}, {"stickers": []}]
+  },
+  "itemBag": {
+    "id": "0",
+    "items": [
+      {"id": 1, "set": [{"qty": 15000}]},
+      {"id": 4, "set": [{"qty": 80}]},
+      {"id": 5, "set": [{"qty": 10000}]},
+      {"id": 1000, "set": [{"qty": 1}]},
+      {"id": 21011, "set": [{"qty": 1}]},
+      {"id": 56001, "set": [{"qty": 1}]},
+      {"id": 58001, "set": [{"qty": 1}]},
+      {"id": 61001, "set": [{"qty": 1}]},
+      {"id": 70001, "set": [{"qty": 1}]},
+      {"id": 73001, "set": [{"qty": 1}]},
+      {"id": 73002, "set": [{"qty": 1}]},
+      {"id": 73003, "set": [{"qty": 1}]},
+      {"id": 73004, "set": [{"qty": 1}]},
+      {"id": 73005, "set": [{"qty": 1}]},
+      {"id": 73006, "set": [{"qty": 1}]},
+      {"id": 73007, "set": [{"qty": 1}]},
+      {"id": 73008, "set": [{"qty": 1}]},
+      {"id": 73501, "set": [{"qty": 1}]},
+      {"id": 73502, "set": [{"qty": 1}]},
+      {"id": 73503, "set": [{"qty": 1}]},
+      {"id": 73504, "set": [{"qty": 1}]},
+      {"id": 73505, "set": [{"qty": 1}]},
+      {"id": 73506, "set": [{"qty": 1}]}
+    ]
+  },
+  "charBag": {
+    "id": "0",
+    "chars": [
+      {"id": 10000, "flag": 64, "femdom": {}, "lv": 1, "skins": [0], "skillLv": [1, 1, 0, 0, 0, 0, 0], "rune": {"bonus": {}}},
+      {"id": 10202, "flag": 64, "femdom": {}, "lv": 1, "skins": [0], "skillLv": [1, 1, 0, 0, 0, 0, 0], "rune": {"bonus": {}}},
+      {"id": 10206, "flag": 64, "femdom": {}, "lv": 1, "skins": [0], "skillLv": [1, 1, 0, 0, 0, 0, 0], "rune": {"bonus": {}}},
+      {"id": 10207, "flag": 64, "femdom": {}, "lv": 1, "skins": [0], "skillLv": [1, 1, 0, 0, 0, 0, 0], "rune": {"bonus": {}}},
+      {"id": 10301, "flag": 64, "femdom": {}, "lv": 1, "skins": [0], "skillLv": [1, 1, 1, 0, 0, 0, 0], "rune": {"bonus": {}}}
+    ],
+    "battleTeams": [{"idx": 1, "chars": [10202, 10206, 10207]}],
+    "displayTeams": [{"idx": 1, "chars": []}]
+  },
+  "social": {
+    "id": "0",
+    "info": {
+      "flagInfo": 5, "age": -1, "sexIndex": -1, "height": -1, "weight": -1, "bloodTypeIndex": -1,
+      "starSignIndex": -1, "flagMbti": 0, "relationshipStateIndex": -1, "bodyShapeIndex": -1
+    }
+  },
+  "mailbox": {"userId": "0"},
+  "stage": {"id": "0"},
+  "event": {"id": "0", "eventRecords": [{"id": 1}]},
+  "mall": {
+    "id": "0",
+    "gacha": {},
+    "sausageRec": {"diceRecs": [{}, {}, {}]}
+  },
+  "yiff": {
+    "id": "0",
+    "bound": [{"idx": 0}, {"idx": 1}, {"idx": 2}],
+    "remainTimes": 1
+  },
+  "store": {}
+}

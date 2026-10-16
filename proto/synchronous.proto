@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package synchronous;
+
+message EnergyCheck {
+  int32 now_energy = 1;
+  int64 last_energy_ts = 2;
+}
+
+message NewDataCheck {
+  int32 flag = 1;
+  repeated int32 events = 2;
+}

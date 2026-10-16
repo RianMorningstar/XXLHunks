@@ -1,0 +1,84 @@
+syntax = "proto3";
+
+package vc;
+
+import "item.proto";
+
+message CoPack {
+  VCInfo info = 1;
+  repeated VCode codes = 2;
+}
+
+message GenVCRequest {
+  int32 kind = 1;
+  string item = 2;
+  string desc = 3;
+  int64 max_num = 4;
+  string customized_code = 5;
+  int64 exp_unix = 6;
+  int64 mail_id = 7;
+  int64 ex_num = 8;
+  repeated int32 channel = 9;
+}
+
+message GenVCResponse {
+  CoPack co_pack = 1;
+}
+
+message VCExchangeRequest {
+  string code = 1;
+}
+
+message VCExchangeResponse {
+  int64 res_code = 1;
+  repeated item.Item rewards = 2;
+}
+
+message VCGetCodesResponse {
+  repeated VCode codes = 1;
+}
+
+message VCInfo {
+  int64 group_id = 1;
+  int32 kind = 2;
+  string item = 3;
+  string desc = 4;
+  int64 max_num = 5;
+  int64 exp_unix = 6;
+  int64 created = 7;
+  int64 mail_id = 8;
+  bool deprecated = 9;
+  int64 ex_num = 10;
+  repeated int32 channel = 11;
+}
+
+message VCModifyRequest {
+  int64 group_id = 1;
+  int32 kind = 2;
+  string item = 3;
+  int64 exp_unix = 4;
+  int64 mail_id = 5;
+  int64 ex_num = 6;
+  bool deprecated = 7;
+  repeated int32 channel = 8;
+}
+
+message VCModifyResponse {
+  VCInfo info = 1;
+}
+
+message VCSearchRequest {
+  int64 group_id = 1;
+  string desc = 2;
+  string code = 3;
+  int64 num = 4;
+}
+
+message VCSearchResponse {
+  repeated VCInfo infos = 1;
+}
+
+message VCode {
+  string code = 1;
+  int64 use_num = 2;
+}

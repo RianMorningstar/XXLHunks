@@ -1,0 +1,32 @@
+[package]
+name = "woofia-server"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+aes = "0.8"
+aes-gcm = "0.10"
+axum = "0.8.9"
+base64 = "0.22"
+bytes = "1"
+cbc = { version = "0.1", features = ["alloc"] }
+getrandom = "0.3"
+hmac = "0.12"
+lz4_flex = "0.11"
+percent-encoding = "2"
+prost = "0.13"
+prost-reflect = { version = "0.15", features = ["serde"] }
+protox = "0.8"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1.0.151"
+sha2 = "0.10"
+tokio = { version = "1.53.2", features = ["full"] }
+tokio-stream = { version = "0.1", features = ["sync"] }
+
+[build-dependencies]
+prost = "0.13"
+prost-build = "0.13"
+protox = "0.8"
+
+[profile.release]
+overflow-checks = true

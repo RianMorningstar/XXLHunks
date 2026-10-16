@@ -1,0 +1,172 @@
+syntax = "proto3";
+
+package goldfinger;
+
+import "character.proto";
+import "model.proto";
+import "stage.proto";
+
+message GFCashPurchaseRequest {
+  int64 user_id = 1;
+  int32 product_id = 2;
+  string transaction_id = 3;
+  string receipt_id = 4;
+}
+
+message GFChangeGuildLeader {
+  int64 guild_id = 1;
+  int64 new_leader_id = 2;
+}
+
+message GFGainGuildExp {
+  int64 guild_id = 1;
+  int32 exp = 2;
+}
+
+message GFGainReward {
+  int64 user_id = 1;
+  repeated model.CommonReward rewards = 2;
+}
+
+message GFGuildDungeonBattleFinish {
+  int32 sn = 1;
+  int64 damage = 2;
+  bool is_win = 3;
+}
+
+message GFGuildDungeonDonateStar {
+  int64 guild_id = 1;
+  repeated int32 stars = 2;
+}
+
+message GFGuildDungeonRevealAll {
+  int64 guild_id = 1;
+  int32 floor = 2;
+  bool peek = 3;
+}
+
+message GFGuildDungeonRewindCycle {
+  int64 guild_id = 1;
+}
+
+message GFGuildDungeonSetMaxLevel {
+  int64 guild_id = 1;
+  int32 max_level = 2;
+}
+
+message GFRankUpFull {
+  int32 id = 1;
+}
+
+message GFRegenerateDungeonFloors {
+  int64 guild_id = 1;
+  int32 floor = 2;
+}
+
+message GFRegenerateEnclosedDungeonFloors {
+  int64 guild_id = 1;
+  int32 floor = 2;
+}
+
+message GFRemoveItem {
+  repeated int32 item_ids = 1;
+  int64 user_id = 2;
+}
+
+message GFResetGuildDonateStarCount {
+  int64 guild_id = 1;
+}
+
+message GFResetStore {
+  int64 user_id = 1;
+  int32 store_id = 2;
+}
+
+message GFSetBasic {
+  int64 user_id = 1;
+  string name = 2;
+  string intro = 3;
+  int32 lv = 4;
+  int32 exp = 5;
+}
+
+message GFSetCharacterData {
+  repeated character.Character character = 1;
+  int64 user_id = 2;
+}
+
+message GFSetCharacterRuneBonus {
+  int64 user_id = 1;
+  int32 char_id = 2;
+  character.RuneBonus bonus = 3;
+}
+
+message GFSetCharacterSkill {
+  int32 character_id = 1;
+  repeated int32 skill_lv = 2;
+}
+
+message GFSetCharacterSkillRequest {
+  repeated GFSetCharacterSkill data = 1;
+  int64 user_id = 2;
+}
+
+message GFSetDispatchLevel {
+  int32 level = 1;
+}
+
+message GFSetGuideFlag {
+  int64 user_id = 1;
+  uint32 flag = 2;
+}
+
+message GFSetGuildLevel {
+  int64 guild_id = 1;
+  int32 level = 2;
+}
+
+message GFSetGuildPoolLevel {
+  int64 guild_id = 1;
+  int32 level = 2;
+}
+
+message GFSetGuildPoolStars {
+  int64 guild_id = 1;
+  repeated int32 stars = 2;
+}
+
+message GFSetMissionCondition {
+  int32 condition_id = 1;
+  int32 param = 2;
+  int32 value = 3;
+}
+
+message GFSetPurchaseStatus {
+  string transaction_id = 1;
+  int32 status = 2;
+}
+
+message GFSetStageStatus {
+  stage.Rec recs = 1;
+}
+
+message GFStageClear {
+  int32 start_stage_id = 1;
+  int32 end_stage_id = 2;
+}
+
+message GFStageStart {
+  int32 stage_id = 1;
+  int32 team_idx = 2;
+  int32 pass_ticket_num = 3;
+  int32 rs = 4;
+}
+
+message GFYiffBurn {
+  int32 char_id = 1;
+}
+
+message OPSetHomeRoleInfos {
+  int64 user_id = 1;
+  repeated int32 char_ids = 2;
+}

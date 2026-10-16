@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package signin;
+
+import "item.proto";
+
+message SignInData {
+  int32 id = 1;
+  repeated bool is_sign_in = 2;
+  bool is_signed_today = 3;
+  int32 filled_times = 4;
+  repeated item.Item items = 5;
+  bool has_first = 6;
+}
+
+message SignInFillRequest {
+  int32 id = 1;
+}
+
+message SignInFillResponse {
+  SignInData data = 1;
+  repeated item.Item final_items = 2;
+}
+
+message SignInResponse {
+  repeated SignInData datas = 1;
+  repeated item.Item final_items = 2;
+}

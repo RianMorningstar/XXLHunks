@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package gridmap;
+
+message Cell {
+  int32 x = 1;
+  int32 y = 2;
+  int32 object_id = 3;
+  repeated int32 args = 4;
+  int64 version = 5;
+}
+
+message FloorActiveAltars {
+  int32 floor = 1;
+  repeated int32 object_ids = 2;
+}
+
+message GridMap {
+  int32 map_id = 1;
+  int32 row = 2;
+  int32 col = 3;
+  repeated Cell cells = 4;
+}

@@ -1,0 +1,151 @@
+syntax = "proto3";
+
+package guildbattle;
+
+import "gridmap.proto";
+import "item.proto";
+
+message DungeonLog {
+  int64 user_id = 1;
+  int32 type = 2;
+  repeated int32 args = 3;
+  int64 timestamp = 4;
+}
+
+message DungeonMemberInfo {
+  int64 user_id = 1;
+  int32 today_donate_star = 2;
+}
+
+message GuildDungeonBattleFinishResponse {
+  repeated int32 drop_ids = 1;
+  bool is_boss = 2;
+  int32 code = 3;
+  repeated gridmap.Cell cells = 4;
+  repeated item.Item final_items = 5;
+  int64 version = 6;
+}
+
+message GuildDungeonBossSimulate {
+  repeated int32 global_skill_ids = 1;
+  int64 boss_acc_dmg = 2;
+  int32 code = 3;
+}
+
+message GuildDungeonBossSimulateRequest {
+  int32 x = 1;
+  int32 y = 2;
+  int32 floor = 3;
+  bool battle_end = 4;
+}
+
+message GuildDungeonCellRequest {
+  int32 x = 1;
+  int32 y = 2;
+  int32 floor = 3;
+  repeated int32 args = 4;
+  int64 version = 5;
+  repeated int32 sync_item_ids = 6;
+  int32 object_id = 7;
+}
+
+message GuildDungeonCellResponse {
+  repeated gridmap.Cell cells = 1;
+  repeated item.Item final_items = 2;
+  int64 version = 3;
+  int32 code = 4;
+  repeated int32 args = 5;
+  repeated item.Item reward = 6;
+  int64 sender_id = 7;
+}
+
+message GuildDungeonClaimRewardResponse {
+  int32 code = 1;
+  repeated item.Item rewards = 2;
+  repeated item.Item final_items = 3;
+}
+
+message GuildDungeonFloor {
+  gridmap.GridMap floor = 1;
+  int32 code = 2;
+  int32 floor_index = 3;
+}
+
+message GuildDungeonInfo {
+  int32 event_id = 1;
+  int32 level = 2;
+  repeated int32 map_ids = 3;
+  int32 state = 4;
+  int64 state_end_unix = 5;
+  repeated int32 star_counts = 6;
+  DungeonMemberInfo member_info = 8;
+  bool can_donate_star = 9;
+}
+
+message GuildDungeonLog {
+  repeated DungeonLog logs = 1;
+  int32 code = 2;
+  repeated int32 boss = 3;
+  repeated int32 star_altar = 4;
+  repeated int32 moon_altar = 5;
+  repeated int32 loot = 6;
+}
+
+message GuildDungeonRevealCellRequest {
+  int32 x = 1;
+  int32 y = 2;
+  int32 floor = 3;
+  int64 version = 4;
+  repeated int32 sync_item_ids = 6;
+}
+
+message GuildDungeonRevealCellResponse {
+  repeated gridmap.Cell cells = 1;
+  repeated item.Item final_items = 2;
+  int32 code = 3;
+  int64 version = 4;
+  repeated item.Item reward = 5;
+}
+
+message GuildDungeonRewards {
+  repeated item.Item rewards = 1;
+  int32 code = 2;
+  repeated GuildItem guild_bag = 3;
+}
+
+message GuildDungeonStarRequest {
+  repeated int32 star_counts = 1;
+  int32 today_donate_star = 2;
+  repeated int32 sync_item_ids = 3;
+}
+
+message GuildDungeonStarResponse {
+  repeated int32 star_counts = 1;
+  int32 code = 2;
+  int32 level = 3;
+  item.Item reward = 4;
+  repeated item.Item final_items = 5;
+}
+
+message GuildDungeonStatsResponse {
+  int32 code = 1;
+  int32 participant_count = 2;
+  int32 boss_killed = 3;
+  int32 mob_killed = 4;
+  int32 loot_opened = 5;
+  int32 star_altar_activated = 6;
+  int32 moon_altar_activated = 7;
+  bool has_gain_reward = 8;
+  repeated item.Item rewards = 9;
+}
+
+message GuildDungeonSyncState {
+  repeated gridmap.FloorActiveAltars active_altars = 1;
+  repeated GuildItem guild_bag = 2;
+  int32 code = 3;
+}
+
+message GuildItem {
+  int32 item_id = 1;
+  int32 qty = 2;
+}

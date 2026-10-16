@@ -1,0 +1,130 @@
+syntax = "proto3";
+
+package userinfo;
+
+import "follow.proto";
+import "item.proto";
+
+message CharSticker {
+  repeated Sticker stickers = 1;
+}
+
+message DisplayCharacter {
+  int32 id = 1;
+  int32 skin_id = 2;
+  int32 lv = 3;
+  int32 evolution_count = 4;
+}
+
+message DisplayTeam {
+  repeated DisplayCharacter chars = 1;
+}
+
+message HomeBackgroundInfo {
+  int32 id = 1;
+  float x = 2;
+  float y = 3;
+  float scale = 4;
+}
+
+message HomeRoleInfo {
+  int32 id = 1;
+  float x = 2;
+  float y = 3;
+  float scale = 4;
+}
+
+message HomeRoleInfoRequest {
+  repeated HomeRoleInfo infos = 1;
+  bool show_home_role = 2;
+  int32 guide_idx = 3;
+}
+
+message Icon {
+  int32 pic_id = 1;
+  int32 frame = 2;
+  int32 title = 3;
+}
+
+message SetBackgroundRequest {
+  repeated HomeBackgroundInfo home_background_info = 5;
+}
+
+message SetNewHandFlag {
+  uint32 step = 1;
+  uint32 flag_idx = 2;
+}
+
+message SetStickerPlanRequest {
+  bool is_home_stickers_char_seperated = 1;
+}
+
+message SetStickersRequest {
+  int32 where = 1;
+  repeated Sticker stickers = 2;
+}
+
+message SetStickersResponse {
+  int32 code = 1;
+}
+
+message SetUserInfoRequest {
+  oneof one_of_info {
+    string name = 1;
+    string intro = 2;
+    Icon icon = 3;
+    HomeRoleInfoRequest info = 5;
+    int32 language = 6;
+    bool hide_char = 7;
+    int32 music_id = 8;
+  }
+}
+
+message SetUserInfoResponse {
+  int32 code = 1;
+  item.Item remaining_item = 2;
+}
+
+message Sticker {
+  int32 item_id = 1;
+  float position_x = 2;
+  float position_y = 3;
+  float size = 4;
+  float rotation = 5;
+  int32 canvas_idx = 6;
+}
+
+message UserBasicInfo {
+  int64 user_id = 1;
+  string name = 2;
+  Icon icon = 3;
+  int32 lv = 4;
+  int64 last_login = 5;
+  int32 flag_info = 6;
+}
+
+message UserBasicInfoRequest {
+  repeated int64 user_id = 1;
+}
+
+message UserBasicInfoResponse {
+  repeated UserBasicInfo infos = 1;
+}
+
+message UserDetailInfo {
+  UserBasicInfo basic_info = 1;
+  string intro = 2;
+  int32 max_stage_id = 3;
+  int64 created = 4;
+  int32 char_num = 5;
+  string guild_name = 6;
+  int32 language_index = 7;
+  int32 interact_count = 8;
+  repeated DisplayCharacter chars = 9;
+  int32 home_first_role_id = 10;
+  int32 home_first_role_skin_id = 11;
+  follow.FollowData follow_data = 12;
+  int32 background_id = 13;
+  bool hide_char = 14;
+  repeated Sticker stickers = 15;
+}

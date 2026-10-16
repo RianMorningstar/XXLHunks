@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package item;
+
+import "model.proto";
+
+message ConsumeCharItemRequest {
+  Item use_item = 1;
+  int32 character = 2;
+}
+
+message ConsumeCharItemResponse {
+  int32 character = 1;
+  repeated Item items = 2;
+  repeated Item reward = 3;
+}
+
+message ConsumeItemRequest {
+  Item use_item = 1;
+  repeated int32 chosen = 2;
+}
+
+message ConsumeItemResponse {
+  repeated Item items = 1;
+  repeated ItemList reward = 2;
+}
+
+message Item {
+  int32 id = 1;
+  repeated model.TLQty set = 2;
+}
+
+message ItemList {
+  repeated Item items = 1;
+}

@@ -1,0 +1,6 @@
+# extracted game data never goes in the repo
+/tables/
+/out_test/
+__pycache__/
+*.bytes
+/.env

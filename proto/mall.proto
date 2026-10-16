@@ -1,0 +1,119 @@
+syntax = "proto3";
+
+package mall;
+
+import "gacha.proto";
+import "item.proto";
+import "sausage.proto";
+
+message BattlePass {
+  int32 id = 1;
+  bool is_vip = 2;
+  int32 base_reward_flag = 3;
+  int32 vip_reward_flag = 4;
+}
+
+message BattlePassClaimRequest {
+  int32 id = 1;
+}
+
+message BattlePassClaimResponse {
+  int32 base_reward_flag = 1;
+  int32 vip_reward_flag = 2;
+  repeated item.Item rewards = 3;
+}
+
+message BattlePassResponse {
+  repeated BattlePass battlepass_recs = 1;
+}
+
+message BuyBattlePassExpRequest {
+  int32 pass_id = 1;
+  int32 exp = 2;
+}
+
+message BuyBattlePassExpResponse {
+  repeated item.Item consume_gem = 1;
+  repeated item.Item increase_item = 2;
+}
+
+message CashPurchaseRequest {
+  string token = 1;
+  int32 product_id = 2;
+  string transaction_id = 3;
+}
+
+message CashPurchaseResponse {
+  string transaction_id = 1;
+  int32 product_id = 2;
+  uint32 status = 3;
+  uint32 channel_status = 4;
+  repeated item.Item rewards = 5;
+}
+
+message CashPurchaseRetryRequest {
+  string token = 1;
+  string transaction_id = 2;
+}
+
+message ClaimSubscriptionRequest {
+  int32 id = 1;
+}
+
+message ClaimSubscriptionResponse {
+  int32 code = 1;
+  repeated item.Item rewards = 2;
+}
+
+message GetSubscriptionResponse {
+  repeated Subscription subscription_recs = 1;
+}
+
+message GiftPack {
+  int32 id = 1;
+  int32 purchase_cnt = 2;
+  int64 expiry = 3;
+  bool has_first_buy = 4;
+}
+
+message InGamePurchaseRequest {
+  int32 product_id = 1;
+}
+
+message InGamePurchaseResponse {
+  repeated item.Item remaining_coin = 1;
+  int32 code = 2;
+}
+
+message Mall {
+  int64 id = 1;
+  gacha.GachaSave gacha = 2;
+  repeated Subscription subscription_recs = 3;
+  repeated BattlePass battlepass_recs = 4;
+  sausage.SausageRec sausage_rec = 5;
+}
+
+message MallSaveResponse {
+  repeated GiftPack pack_recs = 1;
+  repeated Subscription subscription_recs = 2;
+}
+
+message MegaPaymentFinishRequest {
+  string token = 1;
+  string transaction_id = 2;
+  string order_id = 3;
+  string order_token = 4;
+  string custom_param = 5;
+}
+
+message MegaPurchaseRetryResponse {
+  repeated CashPurchaseResponse success_res = 1;
+  repeated CashPurchaseResponse failed_res = 2;
+}
+
+message Subscription {
+  int32 id = 1;
+  bool is_claimed = 2;
+  int64 expiry = 3;
+  int64 start_time = 4;
+}

@@ -1,0 +1,180 @@
+syntax = "proto3";
+
+package activity;
+
+import "item.proto";
+
+message AutoPokeLotteryRequest {
+  int32 lottery_id = 1;
+}
+
+message AutoPokeLotteryResponse {
+  repeated PokingRec records = 1;
+  repeated item.Item gain_items = 2;
+  repeated item.Item last_items = 3;
+}
+
+message ClaimBingoLineRewardResponse {
+  repeated item.Item gain_items = 1;
+  repeated item.Item last_items = 2;
+}
+
+message CombineCancelRequest {
+  int32 event_id = 1;
+}
+
+message CombineCancelResponse {
+  int32 code = 1;
+  CombineRec combine_rec = 2;
+}
+
+message CombineClaimRequest {
+  int32 event_id = 1;
+}
+
+message CombineClaimResponse {
+  repeated item.Item gain_items = 1;
+  repeated item.Item last_items = 2;
+}
+
+message CombineRec {
+  int32 event_id = 1;
+  repeated int32 items = 2;
+  int64 end_unix = 3;
+}
+
+message CombineStartRequest {
+  int32 event_id = 1;
+  repeated int32 items = 2;
+}
+
+message CombineStartResponse {
+  CombineRec combine_rec = 1;
+}
+
+message EventRecord {
+  int32 id = 1;
+  int32 nth_day = 2;
+  int64 start_time = 3;
+  int64 end_time = 4;
+}
+
+message EventStartRequest {
+  int32 event_id = 1;
+}
+
+message EventStartResponse {
+  int32 code = 1;
+}
+
+message FindCharCompleteRequest {
+  int32 id = 1;
+  int32 star = 2;
+  int32 chapter_id = 3;
+}
+
+message FindCharEvent {
+  int32 id = 1;
+  repeated FindMiniGameRec mini_game_recs = 2;
+  int32 star_reward = 3;
+}
+
+message FindCharRewardResponse {
+  repeated item.Item gain_items = 1;
+  repeated item.Item last_items = 2;
+}
+
+message FindCharStarRewardRequest {
+  int32 id = 1;
+  int32 idx = 2;
+}
+
+message FindMiniGameRec {
+  int32 id = 1;
+  int32 star = 2;
+}
+
+message GetCombineRecResponse {
+  repeated CombineRec combine_recs = 1;
+}
+
+message GetEventResponse {
+  repeated EventRecord event_records = 1;
+}
+
+message GetLotteryRecResponse {
+  repeated LotteryRec lottery_recs = 1;
+}
+
+message GetRankingResponse {
+  repeated VoteGroupRec vote_group_recs = 1;
+}
+
+message GetVoteRecResponse {
+  repeated VoteEventRec vote_event_recs = 1;
+}
+
+message LotteryRec {
+  int32 lottery_id = 1;
+  repeated PokingRec records = 2;
+  bool skippable = 3;
+  int32 line_number = 4;
+  int32 line_rewarded = 5;
+  int32 line_connected = 6;
+}
+
+message LotteryStepRewardResponse {
+  repeated item.Item gain_items = 1;
+  repeated item.Item last_items = 2;
+}
+
+message PokeLotteryRequest {
+  int32 lottery_id = 1;
+  int32 times = 2;
+  int32 position = 3;
+}
+
+message PokeLotteryResponse {
+  repeated PokingRec records = 1;
+  repeated item.Item gain_items = 2;
+  repeated item.Item last_items = 3;
+}
+
+message PokingRec {
+  int32 position = 1;
+  int32 reward_id = 2;
+  int32 times = 3;
+}
+
+message Questionnaire {
+  int32 id = 1;
+  int32 flag = 2;
+}
+
+message VoteEventRec {
+  int32 event_id = 1;
+  repeated VoteGroupRec vote_group_recs = 2;
+  int32 total_vote = 3;
+}
+
+message VoteGroupRec {
+  int32 group_id = 1;
+  repeated VoteRec vote_recs = 2;
+}
+
+message VoteRec {
+  int32 id = 1;
+  int32 count = 2;
+}
+
+message VoteRequest {
+  int32 event_id = 1;
+  int32 group_id = 2;
+  int32 option_id = 3;
+  int32 count = 4;
+}
+
+message VoteResponse {
+  repeated item.Item gain_items = 1;
+  repeated item.Item last_items = 2;
+}

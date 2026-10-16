@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package dmm;
+
+import "login.proto";
+
+message ChannelPointReponse {
+  int32 status = 1;
+  int64 point = 2;
+}
+
+message DmmCheckLoginRequest {
+  login.AccInfo acc_info = 1;
+  string onetime_token = 2;
+  int32 viewer_id = 3;
+}
+
+message DmmCheckPaymentRequest {
+  int32 item_id = 1;
+}
+
+message DmmCheckPaymentResponse {
+  string status = 1;
+  string k = 2;
+}
+
+message DmmGetUserIdRequest {
+  int32 viewer_id = 1;
+  string onetime_token = 2;
+}
+
+message DmmGetUserIdResponse {
+  int32 status = 1;
+  string dmm_user = 2;
+}
+
+message DmmPaymentRewardRequest {
+  string payment_id = 1;
+  bytes body = 2;
+  string h = 3;
+}
+
+message DmmReceiptPaymentFinishRequest {
+  string app_id = 1;
+  string payment_id = 2;
+  string in_app_purchase_data_signature = 3;
+  string in_app_purchase_data = 4;
+}
+
+message DmmReceiptPaymentRetryRequest {
+  int32 product_id = 1;
+  string order_id = 2;
+}
+
+message DmmReceiptPaymentRetryResponse {
+  repeated string transaction_id = 1;
+}
+
+message DmmTokenResponse {
+  int32 status = 1;
+  string onetime_token = 2;
+  int64 accept_time = 3;
+}
+
+message DmmUpdateTokenRequest {
+  login.AccInfo acc_info = 1;
+}

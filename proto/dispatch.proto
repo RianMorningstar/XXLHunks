@@ -1,0 +1,69 @@
+syntax = "proto3";
+
+package dispatch;
+
+import "item.proto";
+
+message Dispatch {
+  int32 id = 1;
+  int32 task_id = 2;
+  int32 bonus_condition = 3;
+  int64 end_time_unix = 4;
+  repeated int32 team_character_ids = 5;
+  bool cancelable = 6;
+}
+
+message DispatchCancelRequest {
+  int32 id = 1;
+}
+
+message DispatchCancelResponse {
+  repeated int32 team_character_ids = 2;
+  int32 refreshable_num = 3;
+}
+
+message DispatchClaimRequest {
+  int32 id = 1;
+}
+
+message DispatchClaimResponse {
+  repeated int32 ids = 1;
+  repeated item.Item rewards = 2;
+  repeated item.Item final_items = 3;
+  int32 level = 4;
+  int32 complete_level_mission_count = 6;
+  int32 refreshable_num = 7;
+}
+
+message DispatchRefreshRequest {
+  bool use_item = 1;
+  int32 count = 2;
+}
+
+message DispatchRefreshResponse {
+  repeated Dispatch dispatches = 1;
+  repeated item.Item remaining_item = 2;
+  int32 refresh_count = 3;
+}
+
+message DispatchReponse {
+  repeated Dispatch dispatch = 1;
+  int32 level = 2;
+  int32 complete_level_mission_count = 3;
+  int32 refresh_count = 4;
+  int64 next_auto_fresh_time = 5;
+  int32 refreshable_num = 6;
+}
+
+message DispatchStartRequest {
+  message NewDispatch {
+    int32 id = 1;
+    repeated int32 team_character_ids = 2;
+  }
+  repeated DispatchStartRequest.NewDispatch dispatches = 1;
+}
+
+message DispatchStartResponse {
+  repeated Dispatch dispatches = 1;
+  int32 refreshable_num = 2;
+}

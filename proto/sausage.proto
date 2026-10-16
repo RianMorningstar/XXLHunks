@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package sausage;
+
+import "item.proto";
+
+message DiceRec {
+  repeated int32 dice = 1;
+  int32 get_energy = 2;
+}
+
+message GetSausageResponse {
+  SausageRec sausage_rec = 1;
+  int32 rec_index = 2;
+  item.Item reward_item = 3;
+  item.Item final_item = 4;
+}
+
+message SausageRec {
+  bool has_bonus = 1;
+  repeated DiceRec dice_recs = 2;
+}

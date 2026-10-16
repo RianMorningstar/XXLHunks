@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package leaderboard;
+
+import "userinfo.proto";
+
+message LeaderBoard {
+  message RankInfo {
+    uint64 user_id = 1;
+    int64 score = 2;
+    int64 ts = 3;
+    userinfo.UserBasicInfo basic_info = 4;
+  }
+  uint32 event_id = 1;
+  repeated LeaderBoard.RankInfo ranks = 2;
+}
+
+message ScoreLeaderBoard {
+  message RankInfo {
+    uint64 member = 1;
+    int64 score = 2;
+  }
+  uint32 event_id = 1;
+  repeated ScoreLeaderBoard.RankInfo ranks = 2;
+}

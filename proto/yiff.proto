@@ -1,0 +1,81 @@
+syntax = "proto3";
+
+package yiff;
+
+import "character.proto";
+import "item.proto";
+
+message Bound {
+  int32 idx = 1;
+  int64 start_unix = 2;
+  int32 char_id = 3;
+  int64 last_time = 5;
+  int64 end_time = 6;
+}
+
+message BoundReceiveRequest {
+  repeated int32 idx = 1;
+}
+
+message BoundReceiveResponse {
+  repeated BoundReport reports = 1;
+  bool remove = 2;
+}
+
+message BoundReport {
+  int32 idx = 1;
+  int32 exp = 2;
+  int64 last_time = 3;
+}
+
+message FemdomFinishRequest {
+  int32 idx = 1;
+  repeated int32 card_rec = 2;
+  int32 guide_idx = 3;
+}
+
+message FemdomPurchaseRequest {
+  int32 times = 1;
+  bool use_item = 2;
+  int32 count = 3;
+}
+
+message FemdomPurchaseResponse {
+  int32 remain_times = 1;
+  int32 purchase_times = 2;
+  repeated item.Item last_item = 3;
+}
+
+message FemdomResponse {
+  int32 idx = 1;
+  int32 exp = 2;
+  int32 remain_times = 3;
+  repeated character.Card card_pool = 4;
+  item.Item skin = 5;
+}
+
+message FemdomStartRequest {
+  int32 idx = 1;
+  int32 skip = 2;
+}
+
+message FemdomStartResponse {
+  int32 idx = 1;
+  int32 remain_times = 2;
+  repeated int32 draw_card = 3;
+  int32 exp = 4;
+}
+
+message NewBound {
+  int32 idx = 1;
+  int32 char_id = 2;
+}
+
+message NewBoundRequest {
+  repeated NewBound new_bound = 1;
+  int32 guide_idx = 2;
+}
+
+message NewBoundResponse {
+  repeated Bound bound = 1;
+}

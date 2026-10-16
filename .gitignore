@@ -1,0 +1,21 @@
+# saves, accounts, logs
+/data/
+
+# build output
+/target/
+
+# python
+/.venv/
+__pycache__/
+
+*.log
+*.user
+
+# captures and game files never go in the repo
+/tables/
+/cdn/
+*.flows
+*.apk
+
+# local settings (copy of .env.example)
+/.env

@@ -1,0 +1,173 @@
+syntax = "proto3";
+
+package character;
+
+import "item.proto";
+
+message Card {
+  int32 id = 1;
+  bool opened = 2;
+  bool played = 3;
+}
+
+message Character {
+  int32 id = 1;
+  uint32 flag = 2;
+  Femdom femdom = 3;
+  int32 crystal_buy = 4;
+  int32 lv_break = 5;
+  int32 lv = 6;
+  int32 rank = 7;
+  int32 skin = 8;
+  repeated int32 skins = 9;
+  repeated int32 skill_lv = 10;
+  Rune rune = 11;
+}
+
+message Chars {
+  repeated int32 chars = 1;
+}
+
+message CollectRewardRequest {
+  int32 char_id = 1;
+  uint32 flag = 2;
+}
+
+message CollectRewardResponse {
+  repeated item.Item rewards = 1;
+  repeated item.Item last_items = 2;
+}
+
+message EnhanceRequest {
+  int32 id = 1;
+  int32 lv_count = 2;
+  int32 guide_idx = 3;
+}
+
+message EnhanceResponse {
+  int32 lv = 1;
+  repeated item.Item last_items = 2;
+}
+
+message FavoriteInfo {
+  int32 char_id = 1;
+  bool favorite = 2;
+}
+
+message FavoriteRequest {
+  repeated FavoriteInfo favorites = 1;
+}
+
+message Femdom {
+  int32 lv = 1;
+  int32 exp = 2;
+  repeated Card card_pool = 4;
+}
+
+message LvBreakRequest {
+  int32 char_id = 1;
+}
+
+message LvBreakResponse {
+  int32 lv_break = 1;
+  repeated item.Item last_items = 2;
+}
+
+message MultiTeamInfo {
+  repeated TeamInfo teams = 1;
+  int32 team_type = 2;
+}
+
+message MultiTeamInfoRequest {
+  int32 limit_type = 1;
+  int32 team_type = 2;
+  int32 team_idx = 3;
+  MultiTeamInfo team_chars = 4;
+}
+
+message RankUpRequest {
+  int32 id = 1;
+  int32 target_rank = 3;
+  bool use_universal = 4;
+}
+
+message RankUpResponse {
+  int32 rank = 1;
+  repeated item.Item last_items = 3;
+  int32 result_code = 4;
+}
+
+message ResetLvRequest {
+  int32 char_id = 1;
+}
+
+message ResetLvResponse {
+  repeated item.Item return_items = 1;
+  repeated item.Item last_items = 2;
+}
+
+message ResetSkillRequest {
+  int32 char_id = 1;
+  int32 skill_index = 2;
+}
+
+message ResetSkillResponse {
+  repeated item.Item return_items = 1;
+  repeated item.Item last_items = 2;
+}
+
+message Rune {
+  bool unlock = 1;
+  RuneBonus bonus = 2;
+  RuneBonus temp = 3;
+  int32 improve_count = 4;
+  int32 adv_improve_count = 5;
+}
+
+message RuneApplyRequest {
+  int32 char_id = 1;
+  bool apply = 2;
+}
+
+message RuneBonus {
+  int32 hp = 1;
+  int32 atk = 2;
+}
+
+message RuneImproveRequest {
+  int32 char_id = 1;
+  bool advanced = 2;
+  int32 count = 3;
+}
+
+message RuneImproveResponse {
+  RuneBonus temp = 1;
+  repeated item.Item last_items = 2;
+  int32 normal_count = 3;
+  int32 advanced_count = 4;
+}
+
+message RuneUnlockRequest {
+  int32 char_id = 1;
+}
+
+message RuneUnlockResponse {
+  repeated item.Item last_items = 1;
+}
+
+message SkillLevelUpRequest {
+  int32 char_id = 1;
+  int32 skill_index = 2;
+}
+
+message SkinRequest {
+  int32 id = 1;
+  int32 skin = 2;
+}
+
+message TeamInfo {
+  int32 idx = 1;
+  repeated int32 chars = 2;
+  string name = 3;
+  int32 guide_idx = 4;
+}

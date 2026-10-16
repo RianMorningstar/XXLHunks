@@ -1,0 +1,1532 @@
+{
+ "BattleReatcion_C": {
+  "struct": "TBattleReatcionData",
+  "fields": [
+   [
+    "CharId",
+    "int"
+   ],
+   [
+    "HitEmoji",
+    "int"
+   ],
+   [
+    "SkillEmoji",
+    "int"
+   ],
+   [
+    "SleepEmoji",
+    "int"
+   ],
+   [
+    "ParaEmoji",
+    "int"
+   ],
+   [
+    "SlientEmoji",
+    "int"
+   ],
+   [
+    "DeadEmoji",
+    "int"
+   ]
+  ]
+ },
+ "Battle_Monster_C": {
+  "struct": "TBattleMonsterData",
+  "fields": [
+   [
+    "BattleId",
+    "int"
+   ],
+   [
+    "Wave",
+    "int"
+   ],
+   [
+    "MonsterGroupId",
+    "int"
+   ]
+  ]
+ },
+ "CharacterLvUp_C": {
+  "struct": "TCharacterLvUpData",
+  "fields": [
+   [
+    "Lv",
+    "int"
+   ],
+   [
+    "Exp",
+    "int"
+   ],
+   [
+    "Money",
+    "int"
+   ]
+  ]
+ },
+ "Event_C": {
+  "struct": "TEventData",
+  "fields": [
+   [
+    "EventId",
+    "int"
+   ],
+   [
+    "Banner",
+    "string"
+   ],
+   [
+    "BannerSort",
+    "int"
+   ],
+   [
+    "DaysLimit",
+    "int"
+   ],
+   [
+    "ShowHome",
+    "bool"
+   ],
+   [
+    "ShowGift",
+    "bool"
+   ],
+   [
+    "Condition",
+    "int"
+   ],
+   [
+    "Parameter",
+    "int"
+   ],
+   [
+    "Time",
+    "int"
+   ],
+   [
+    "EndTime",
+    "int"
+   ]
+  ]
+ },
+ "GuildLv_C": {
+  "struct": "TGuildLvData",
+  "fields": [
+   [
+    "Lv",
+    "int"
+   ],
+   [
+    "Exp",
+    "int"
+   ],
+   [
+    "Number",
+    "int"
+   ],
+   [
+    "IconCount",
+    "int"
+   ]
+  ]
+ },
+ "GuildMascot_C": {
+  "struct": "TGuildMascotData",
+  "fields": [
+   [
+    "Lv",
+    "int"
+   ],
+   [
+    "RoleId",
+    "int"
+   ]
+  ]
+ },
+ "Interactive_C": {
+  "struct": "TInteractiveData",
+  "fields": [
+   [
+    "RoleId",
+    "int"
+   ],
+   [
+    "SkinId",
+    "int"
+   ],
+   [
+    "TouchId",
+    "int"
+   ],
+   [
+    "TextId",
+    "int"
+   ],
+   [
+    "ActId",
+    "int"
+   ],
+   [
+    "FaceId",
+    "int"
+   ]
+  ]
+ },
+ "ItemGoto_C": {
+  "struct": "TItemGotoData",
+  "fields": [
+   [
+    "ItemId",
+    "int"
+   ],
+   [
+    "GotoId",
+    "int"
+   ],
+   [
+    "Parm",
+    "int"
+   ]
+  ]
+ },
+ "Item_C": {
+  "struct": "TItemData",
+  "fields": [
+   [
+    "id",
+    "int"
+   ],
+   [
+    "rarity",
+    "int"
+   ],
+   [
+    "iconName",
+    "string"
+   ],
+   [
+    "kind",
+    "int"
+   ],
+   [
+    "effectValue",
+    "int"
+   ],
+   [
+    "effectRoleId",
+    "int"
+   ],
+   [
+    "getWayId",
+    "int"
+   ],
+   [
+    "maxCount",
+    "int"
+   ],
+   [
+    "targetAssetName",
+    "string"
+   ]
+  ]
+ },
+ "Luckybag_C": {
+  "struct": "Luckybag",
+  "fields": [
+   [
+    "BagId",
+    "int"
+   ],
+   [
+    "Index",
+    "int"
+   ],
+   [
+    "Tag",
+    "string"
+   ],
+   [
+    "Weight",
+    "double"
+   ],
+   [
+    "ItemId",
+    "int"
+   ],
+   [
+    "Min",
+    "int"
+   ],
+   [
+    "Max",
+    "int"
+   ]
+  ]
+ },
+ "LvUp_C": {
+  "struct": "TLvUpData",
+  "fields": [
+   [
+    "Lv",
+    "int"
+   ],
+   [
+    "needExp",
+    "int"
+   ],
+   [
+    "EnergyReward",
+    "int"
+   ],
+   [
+    "Open",
+    "int"
+   ]
+  ]
+ },
+ "MiniGameReaction_C": {
+  "struct": "TMiniGameReactionData",
+  "fields": [
+   [
+    "CharId",
+    "int"
+   ],
+   [
+    "BoundId",
+    "int"
+   ],
+   [
+    "GroupId",
+    "int"
+   ],
+   [
+    "SpeakerPosition",
+    "int"
+   ],
+   [
+    "ChatId",
+    "int"
+   ]
+  ]
+ },
+ "Mission_C": {
+  "struct": "TMissionData",
+  "fields": [
+   [
+    "MissionId",
+    "int"
+   ],
+   [
+    "Type",
+    "int"
+   ],
+   [
+    "EventSeq",
+    "int"
+   ],
+   [
+    "BeforeMissionId",
+    "int"
+   ],
+   [
+    "MissionCondition",
+    "int"
+   ],
+   [
+    "ConditionParameter",
+    "int"
+   ],
+   [
+    "FinishValue",
+    "int"
+   ],
+   [
+    "RewardId",
+    "int"
+   ],
+   [
+    "GotoUi",
+    "int"
+   ]
+  ]
+ },
+ "RoleBoundLv_C": {
+  "struct": "TRoleBoundLvData",
+  "fields": [
+   [
+    "Rarity",
+    "int"
+   ],
+   [
+    "Lv",
+    "int"
+   ],
+   [
+    "Exp",
+    "int"
+   ],
+   [
+    "Show",
+    "int"
+   ],
+   [
+    "Atk",
+    "int"
+   ],
+   [
+    "Hp",
+    "int"
+   ]
+  ]
+ },
+ "SignIn_C": {
+  "struct": "TSignInData",
+  "fields": [
+   [
+    "SigninId",
+    "int"
+   ],
+   [
+    "EventId",
+    "int"
+   ],
+   [
+    "Banner",
+    "string"
+   ],
+   [
+    "CharacterId",
+    "int"
+   ],
+   [
+    "BgId",
+    "int"
+   ],
+   [
+    "Type",
+    "int"
+   ],
+   [
+    "CanSkip",
+    "bool"
+   ],
+   [
+    "CanLoop",
+    "bool"
+   ],
+   [
+    "CanMakeup",
+    "bool"
+   ],
+   [
+    "SigninDay",
+    "int"
+   ],
+   [
+    "RewardId",
+    "int"
+   ],
+   [
+    "MakeupPrice",
+    "int"
+   ],
+   [
+    "MakeupMax",
+    "int"
+   ]
+  ]
+ },
+ "SignIn_Reward_C": {
+  "struct": "SignInReward",
+  "fields": [
+   [
+    "RewardId",
+    "int"
+   ],
+   [
+    "Index",
+    "int"
+   ],
+   [
+    "Tag",
+    "string"
+   ],
+   [
+    "Weight",
+    "double"
+   ],
+   [
+    "ItemId",
+    "int"
+   ],
+   [
+    "Min",
+    "int"
+   ],
+   [
+    "Max",
+    "int"
+   ]
+  ]
+ },
+ "Skin_C": {
+  "struct": "TSkinData",
+  "fields": [
+   [
+    "itemId",
+    "int"
+   ],
+   [
+    "localizedName",
+    "int"
+   ],
+   [
+    "localizedDescription",
+    "int"
+   ],
+   [
+    "roleId",
+    "int"
+   ],
+   [
+    "skinId",
+    "int"
+   ]
+  ]
+ },
+ "StoreGoods_C": {
+  "struct": "TStoreGoodsData",
+  "fields": [
+   [
+    "GroupId",
+    "int"
+   ],
+   [
+    "ItemId",
+    "int"
+   ],
+   [
+    "ItemAmount",
+    "int"
+   ],
+   [
+    "Money",
+    "int"
+   ],
+   [
+    "Price",
+    "int"
+   ],
+   [
+    "GoodsAmount",
+    "int"
+   ],
+   [
+    "SpecialIcon",
+    "string"
+   ]
+  ]
+ },
+ "WeakPointLocation_C": {
+  "struct": "TWeakPointLocationData",
+  "fields": [
+   [
+    "LocationId",
+    "int"
+   ],
+   [
+    "BoneId",
+    "string"
+   ],
+   [
+    "XOffset",
+    "int"
+   ],
+   [
+    "YOffset",
+    "int"
+   ]
+  ]
+ },
+ "bearmangame_C": {
+  "struct": "TBearmanGameData",
+  "fields": [
+   [
+    "ChapterId",
+    "int"
+   ],
+   [
+    "StageCount",
+    "int"
+   ],
+   [
+    "StarAmount1",
+    "int"
+   ],
+   [
+    "StarReward1",
+    "int"
+   ],
+   [
+    "StarAmount2",
+    "int"
+   ],
+   [
+    "StarReward2",
+    "int"
+   ],
+   [
+    "StarAmount3",
+    "int"
+   ],
+   [
+    "StarReward3",
+    "int"
+   ]
+  ]
+ },
+ "boundaction_C": {
+  "struct": "TBoundactionData",
+  "fields": [
+   [
+    "Id",
+    "int"
+   ],
+   [
+    "Answer",
+    {
+     "fixed": 3,
+     "of": "int"
+    }
+   ],
+   [
+    "CardGroup",
+    {
+     "fixed": 11,
+     "of": "int",
+     "trim": true
+    }
+   ]
+  ]
+ },
+ "boundsetting_C": {
+  "struct": "TBoundsettingData",
+  "fields": [
+   [
+    "Id",
+    "int"
+   ],
+   [
+    "Directions",
+    "int"
+   ],
+   [
+    "Type",
+    "int"
+   ]
+  ]
+ },
+ "challenge_index_C": {
+  "struct": "TChallengeIndexData",
+  "fields": [
+   [
+    "ChallengeType",
+    "int"
+   ],
+   [
+    "CostTicket",
+    "int"
+   ],
+   [
+    "ChallengeTimes",
+    "int"
+   ],
+   [
+    "BattleBackground",
+    "int"
+   ]
+  ]
+ },
+ "challenge_schedule_C": {
+  "struct": "TChallengeScheduleData",
+  "fields": [
+   [
+    "StageType",
+    "int"
+   ],
+   [
+    "ChapterId",
+    "int"
+   ],
+   [
+    "Icon",
+    "string"
+   ],
+   [
+    "OpenDay",
+    "int"
+   ]
+  ]
+ },
+ "changebattleassets_C": {
+  "struct": "TChangeBattleAssetsData",
+  "fields": [
+   [
+    "Id",
+    "int"
+   ],
+   [
+    "BattleBackground",
+    "string"
+   ],
+   [
+    "BattleBgm",
+    "string"
+   ]
+  ]
+ },
+ "combine_reward_C": {
+  "struct": "TCombineRewardData",
+  "fields": [
+   [
+    "DropId",
+    "int"
+   ],
+   [
+    "GroupId",
+    "int"
+   ],
+   [
+    "Type",
+    "string"
+   ],
+   [
+    "ProbabilityOrWeight",
+    "double"
+   ],
+   [
+    "ItemId",
+    "int"
+   ],
+   [
+    "AmountMin",
+    "int"
+   ],
+   [
+    "AmountMax",
+    "int"
+   ]
+  ]
+ },
+ "dungeon_constant_C": {
+  "struct": "TDungeonConstantData",
+  "fields": [
+   [
+    "Key",
+    "string"
+   ],
+   [
+    "Value",
+    "int"
+   ]
+  ]
+ },
+ "dungeon_map_C": {
+  "struct": "TDungeonMapData",
+  "fields": [
+   [
+    "Id",
+    "int"
+   ],
+   [
+    "ObjectId",
+    "int"
+   ],
+   [
+    "Count",
+    "int"
+   ]
+  ]
+ },
+ "dungeon_map_list_C": {
+  "struct": "TDungeonMapListData",
+  "fields": [
+   [
+    "Id",
+    "int"
+   ],
+   [
+    "Height",
+    "int"
+   ],
+   [
+    "Width",
+    "int"
+   ],
+   [
+    "RequireEachStarCount",
+    "int"
+   ],
+   [
+    "RecommandPlayerCount",
+    "int"
+   ]
+  ]
+ },
+ "dungeon_obj_C": {
+  "struct": "TDungeonObjData",
+  "fields": [
+   [
+    "Id",
+    "int"
+   ],
+   [
+    "Kind",
+    "int"
+   ],
+   [
+    "EffectValue",
+    "int"
+   ],
+   [
+    "CostId",
+    "int"
+   ],
+   [
+    "CostEnergy",
+    "int"
+   ]
+  ]
+ },
+ "dungeon_stage_C": {
+  "struct": "TDungeonStageData",
+  "fields": [
+   [
+    "DungeonbattleId",
+    "int"
+   ],
+   [
+    "BattleBackground",
+    "string"
+   ],
+   [
+    "BattleBgm",
+    "string"
+   ],
+   [
+    "BattleId",
+    "int"
+   ],
+   [
+    "DungeonStrenth",
+    "int"
+   ],
+   [
+    "TeamType",
+    "int"
+   ],
+   [
+    "DungeonReward",
+    "int"
+   ]
+  ]
+ },
+ "dungeoncost_C": {
+  "struct": "TDungeoncostData",
+  "fields": [
+   [
+    "CostId",
+    "int"
+   ],
+   [
+    "ItemId",
+    "int"
+   ],
+   [
+    "Amount",
+    "int"
+   ]
+  ]
+ },
+ "dungeonreward_C": {
+  "struct": "TDungeonrewardData",
+  "fields": [
+   [
+    "DropId",
+    "int"
+   ],
+   [
+    "GroupId",
+    "int"
+   ],
+   [
+    "Type",
+    "string"
+   ],
+   [
+    "ProbabilityOrWeight",
+    "double"
+   ],
+   [
+    "ItemId",
+    "int"
+   ],
+   [
+    "AmountMin",
+    "int"
+   ],
+   [
+    "AmountMax",
+    "int"
+   ],
+   [
+    "DropTarget",
+    "int"
+   ]
+  ]
+ },
+ "eventbonus_C": {
+  "struct": "TEventbonusData",
+  "fields": [
+   [
+    "ChapterId",
+    "int"
+   ],
+   [
+    "CharId",
+    "int"
+   ],
+   [
+    "BonusItem",
+    "int"
+   ],
+   [
+    "Bonus",
+    "double"
+   ]
+  ]
+ },
+ "findcharacter_C": {
+  "struct": "TFindCharacterData",
+  "fields": [
+   [
+    "ChapterId",
+    "int"
+   ],
+   [
+    "StageId",
+    "int"
+   ],
+   [
+    "StageName",
+    "string"
+   ],
+   [
+    "EventId",
+    "int"
+   ],
+   [
+    "PrefabName",
+    "string"
+   ],
+   [
+    "BgId",
+    "int"
+   ],
+   [
+    "Amount",
+    "int"
+   ],
+   [
+    "RewardId",
+    "int"
+   ],
+   [
+    "BgAudio",
+    "string"
+   ]
+  ]
+ },
+ "gacha_C": {
+  "struct": "TGachaData",
+  "fields": [
+   [
+    "GachaId",
+    "int"
+   ],
+   [
+    "BannerId",
+    "string"
+   ],
+   [
+    "BgId",
+    "string"
+   ],
+   [
+    "NameId",
+    "int"
+   ],
+   [
+    "DailyFree",
+    "int"
+   ],
+   [
+    "FreeLimit",
+    "int"
+   ],
+   [
+    "GuaranteedCount",
+    "int"
+   ],
+   [
+    "GuaranteedPu",
+    "int"
+   ],
+   [
+    "GuaranteedRarity",
+    "int"
+   ],
+   [
+    "StepGroup",
+    "int"
+   ],
+   [
+    "EventId",
+    "int"
+   ],
+   [
+    "Wishlist",
+    "bool"
+   ],
+   [
+    "Rare1Weight",
+    "int"
+   ],
+   [
+    "Rare2Weight",
+    "int"
+   ],
+   [
+    "Rare3Weight",
+    "int"
+   ],
+   [
+    "Rare4Weight",
+    "int"
+   ],
+   [
+    "CloseCount",
+    "int"
+   ]
+  ]
+ },
+ "gacha_group_C": {
+  "struct": "TGachaGroupData",
+  "fields": [
+   [
+    "GachaId",
+    "int"
+   ],
+   [
+    "Reward",
+    {
+     "fixed": 6,
+     "of": "int"
+    }
+   ]
+  ]
+ },
+ "gacha_group_set_C": {
+  "struct": "TGachaGroupSetData",
+  "fields": [
+   [
+    "GroupId",
+    "int"
+   ],
+   [
+    "RwdType",
+    "int"
+   ],
+   [
+    "RwdId",
+    "int"
+   ],
+   [
+    "Rarity",
+    "int"
+   ],
+   [
+    "Weight",
+    "int"
+   ],
+   [
+    "RewardMin",
+    "int"
+   ],
+   [
+    "RewardMax",
+    "int"
+   ],
+   [
+    "PickUp",
+    "bool"
+   ],
+   [
+    "Show",
+    "bool"
+   ]
+  ]
+ },
+ "gacha_price_C": {
+  "struct": "TGachaPriceData",
+  "fields": [
+   [
+    "GachaId",
+    "int"
+   ],
+   [
+    "TicketId",
+    "int"
+   ],
+   [
+    "TicketAmt",
+    "int"
+   ],
+   [
+    "ReplaceDia",
+    "bool"
+   ],
+   [
+    "DiaPrice",
+    "int"
+   ],
+   [
+    "Dividend",
+    "int"
+   ]
+  ]
+ },
+ "gacha_step_C": {
+  "struct": "TGachaStepData",
+  "fields": [
+   [
+    "StepGroup",
+    "int"
+   ],
+   [
+    "GachaCounts",
+    "int"
+   ],
+   [
+    "RewardType",
+    "int"
+   ],
+   [
+    "RewardId",
+    "int"
+   ],
+   [
+    "RewardAmt",
+    "int"
+   ]
+  ]
+ },
+ "giftpack_C": {
+  "struct": "TGiftpackData",
+  "fields": [
+   [
+    "MerchId",
+    "int"
+   ],
+   [
+    "ItemId",
+    "int"
+   ],
+   [
+    "ItemAmt",
+    "int"
+   ],
+   [
+    "Image",
+    "string"
+   ]
+  ]
+ },
+ "guildwish_C": {
+  "struct": "TGuildwishData",
+  "fields": [
+   [
+    "Lv",
+    "int"
+   ],
+   [
+    "LvStarAmount",
+    "int"
+   ],
+   [
+    "Number",
+    "int"
+   ]
+  ]
+ },
+ "mallpage_C": {
+  "struct": "TMallpageData",
+  "fields": [
+   [
+    "MallId",
+    "int"
+   ],
+   [
+    "PageId",
+    "int"
+   ],
+   [
+    "BannerId",
+    "string"
+   ],
+   [
+    "Time",
+    "int"
+   ],
+   [
+    "EndTime",
+    "int"
+   ],
+   [
+    "DaysLimit",
+    "int"
+   ],
+   [
+    "RefreshTime",
+    "int"
+   ]
+  ]
+ },
+ "novice_C": {
+  "struct": "TNoviceData",
+  "fields": [
+   [
+    "Condition",
+    "int"
+   ],
+   [
+    "Parameter",
+    "int"
+   ],
+   [
+    "GroupId",
+    "int"
+   ],
+   [
+    "Id",
+    "int"
+   ],
+   [
+    "NextId",
+    "int"
+   ],
+   [
+    "SaveFlag",
+    "int"
+   ],
+   [
+    "PassBool",
+    "bool"
+   ],
+   [
+    "PassValue",
+    "int"
+   ],
+   [
+    "TextId",
+    "int"
+   ],
+   [
+    "TextPos",
+    "int"
+   ],
+   [
+    "SpineId",
+    "int"
+   ],
+   [
+    "SpineFace",
+    "int"
+   ],
+   [
+    "MaskType",
+    "bool"
+   ],
+   [
+    "HandPos",
+    "int"
+   ],
+   [
+    "Path",
+    "string"
+   ]
+  ]
+ },
+ "pokinglottery_C": {
+  "struct": "TPokingLotteryData",
+  "fields": [
+   [
+    "Id",
+    "int"
+   ],
+   [
+    "EventId",
+    "int"
+   ],
+   [
+    "ReqItem",
+    "int"
+   ],
+   [
+    "ReqItemAmt",
+    "int"
+   ],
+   [
+    "GetItem",
+    "int"
+   ],
+   [
+    "GetItemAmt",
+    "int"
+   ],
+   [
+    "LotteryLimit",
+    "int"
+   ],
+   [
+    "GroupId",
+    "int"
+   ],
+   [
+    "SeriesGroup",
+    "int"
+   ],
+   [
+    "SeriesId",
+    "int"
+   ],
+   [
+    "Skipable",
+    "int"
+   ],
+   [
+    "LotteryType",
+    "int"
+   ],
+   [
+    "LotterySelect",
+    "int"
+   ],
+   [
+    "StepGroup",
+    "int"
+   ],
+   [
+    "MallId",
+    "int"
+   ],
+   [
+    "BannerId",
+    "string"
+   ]
+  ]
+ },
+ "pokingstep_C": {
+  "struct": "TPokingStepData",
+  "fields": [
+   [
+    "StepGroup",
+    "int"
+   ],
+   [
+    "LotteryCounts",
+    "int"
+   ],
+   [
+    "RewardId",
+    "int"
+   ],
+   [
+    "RewardAmt",
+    "int"
+   ]
+  ]
+ },
+ "popuppage_C": {
+  "struct": "TPopUpPageData",
+  "fields": [
+   [
+    "PupId",
+    "int"
+   ],
+   [
+    "Diplay",
+    "int"
+   ],
+   [
+    "DiplayPara1",
+    "int"
+   ],
+   [
+    "DiplayPara2",
+    "int"
+   ],
+   [
+    "Banner",
+    "string"
+   ],
+   [
+    "BannerSort",
+    "int"
+   ],
+   [
+    "EventId",
+    "int"
+   ],
+   [
+    "FunctionType",
+    "int"
+   ],
+   [
+    "FunctionPara",
+    "int"
+   ],
+   [
+    "HideType",
+    "int"
+   ],
+   [
+    "HidePara",
+    "int"
+   ]
+  ]
+ },
+ "purchase_C": {
+  "struct": "TPurchaseData",
+  "fields": [
+   [
+    "Id",
+    "int"
+   ],
+   [
+    "MallId",
+    "int"
+   ],
+   [
+    "MerchId",
+    "int"
+   ],
+   [
+    "MerchType",
+    "int"
+   ],
+   [
+    "Platform",
+    "int"
+   ],
+   [
+    "Price",
+    "int"
+   ],
+   [
+    "Currency",
+    "int"
+   ],
+   [
+    "NtdPrice",
+    "int"
+   ],
+   [
+    "PurchaseLimits",
+    "int"
+   ],
+   [
+    "FirstTimeBonus",
+    "int"
+   ],
+   [
+    "ProductId",
+    "string"
+   ],
+   [
+    "SpMark",
+    "string"
+   ]
+  ]
+ },
+ "questionnaire_C": {
+  "struct": "TQuestionnaireData",
+  "fields": [
+   [
+    "EventId",
+    "int"
+   ],
+   [
+    "QuestionnaireId",
+    "string"
+   ]
+  ]
+ },
+ "questionnaire_reward_C": {
+  "struct": "TQuestionnaireRewardData",
+  "fields": [
+   [
+    "EventId",
+    "int"
+   ],
+   [
+    "ItemId",
+    "int"
+   ],
+   [
+    "Amount",
+    "int"
+   ]
+  ]
+ },
+ "subscribe_C": {
+  "struct": "TSubscribeData",
+  "fields": [
+   [
+    "MerchId",
+    "int"
+   ],
+   [
+    "Duration",
+    "int"
+   ],
+   [
+    "PrivilegeType",
+    "int"
+   ],
+   [
+    "PrivilegePara1",
+    "int"
+   ],
+   [
+    "PrivilegePara2",
+    "int"
+   ]
+  ]
+ },
+ "vote_character_C": {
+  "struct": "TVoteCharacterData",
+  "fields": [
+   [
+    "VoteGroup",
+    "int"
+   ],
+   [
+    "CharacterId",
+    "int"
+   ]
+  ]
+ }
+}

@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package mail;
+
+import "item.proto";
+
+message GetMailRewardRequest {
+  repeated string mail_sn = 1;
+}
+
+message GetMailRewardResponse {
+  int64 version = 1;
+  repeated string valid_sn = 2;
+  repeated Mail recorded_mails = 3;
+  repeated item.Item gain_rewards = 4;
+  repeated item.Item final_items = 5;
+}
+
+message Mail {
+  string sn = 1;
+  uint32 flag = 2;
+  int64 sender = 3;
+  MailText mail_text = 4;
+  repeated item.Item rewards = 5;
+  int64 exp_secs = 6;
+  int64 ts = 7;
+}
+
+message MailBox {
+  int64 user_id = 1;
+  int64 version = 2;
+  repeated Mail mails = 3;
+}
+
+message MailReadRequest {
+  repeated string mail_sn = 1;
+}
+
+message MailReadResponse {
+  int64 version = 1;
+}
+
+message MailText {
+  int32 id = 1;
+  string subject = 2;
+  string content = 3;
+  repeated string pra = 4;
+  repeated string tag = 5;
+}
+
+message RemoveMailsRequest {
+  string id = 1;
+  repeated string sn = 2;
+}
+
+message RemoveMailsResponse {
+  int64 version = 1;
+  repeated string sn = 2;
+}

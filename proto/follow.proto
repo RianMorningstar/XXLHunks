@@ -1,0 +1,128 @@
+syntax = "proto3";
+
+package follow;
+
+message Feed {
+  enum Type {
+    UNSPECIFIED = 0;
+    ROLE_STAR_UP = 1;
+    ROLE_BREAK_LEVEL = 2;
+    FINISH_MAIN_CHAPTER = 3;
+    FINISH_CHALLENGE_STAGE = 4;
+    POKE = 5;
+    GET_XXL_ROLE = 6;
+  }
+  string feed_id = 1;
+  int64 timestamp = 2;
+  int64 user_id = 3;
+  Feed.Type type = 4;
+  int32 character_id = 5;
+  int32 star = 6;
+  int32 break_level = 7;
+  int32 story_chapter_id = 8;
+  int32 stage_id = 9;
+  bool is_like = 10;
+  int32 like_count = 11;
+  FollowData follow_data = 12;
+}
+
+message FollowData {
+  bool is_following = 1;
+  bool is_following_me = 2;
+  bool is_poked = 3;
+}
+
+message Follower {
+  int64 follower_id = 1;
+  FollowData follow_data = 2;
+  bool is_new = 3;
+}
+
+message Following {
+  int64 following_id = 1;
+  FollowData follow_data = 2;
+}
+
+message HotRank {
+  int64 user_id = 1;
+  int32 rank = 2;
+  int32 hotness = 3;
+}
+
+message RecommendedUser {
+  int64 user_id = 1;
+  FollowData follow_data = 2;
+}
+
+message SocialAddBlacklistRequest {
+  int64 target_id = 1;
+}
+
+message SocialBlacklistResponse {
+  repeated int64 blacklist = 1;
+}
+
+message SocialFollowRequest {
+  int64 target_id = 1;
+}
+
+message SocialFollowResponse {
+  int32 code = 1;
+}
+
+message SocialFollowersResponse {
+  repeated Follower followers = 1;
+  int32 total = 2;
+  int32 next_index = 3;
+}
+
+message SocialFollowingFeedsResponse {
+  repeated Feed feeds = 1;
+  bool is_last = 2;
+}
+
+message SocialFollowingsResponse {
+  repeated Following followings = 1;
+}
+
+message SocialHotRankResponse {
+  repeated HotRank ranks = 1;
+}
+
+message SocialLikeRequest {
+  string feed_id = 1;
+}
+
+message SocialLikeResponse {
+  int32 code = 1;
+}
+
+message SocialMyFeedsResponse {
+  repeated Feed feeds = 1;
+  bool is_last = 2;
+}
+
+message SocialPokeRequest {
+  int64 target_id = 1;
+  bool is_poke_back = 2;
+}
+
+message SocialPokeResponse {
+  int32 code = 1;
+}
+
+message SocialRecommendResponse {
+  repeated RecommendedUser users = 1;
+}
+
+message SocialRemoveBlacklistRequest {
+  int64 target_id = 1;
+}
+
+message SocialUnfollowRequest {
+  int64 target_id = 1;
+}
+
+message SocialUnfollowResponse {
+  int32 code = 1;
+}

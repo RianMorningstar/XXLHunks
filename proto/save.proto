@@ -1,0 +1,111 @@
+syntax = "proto3";
+
+package save;
+
+import "activity.proto";
+import "character.proto";
+import "dispatch.proto";
+import "guild.proto";
+import "item.proto";
+import "mail.proto";
+import "mall.proto";
+import "social.proto";
+import "stage.proto";
+import "store.proto";
+import "userinfo.proto";
+import "yiff.proto";
+
+message Basic {
+  int64 id = 1;
+  string name = 2;
+  string intro = 3;
+  int32 title = 4;
+  int32 pic = 5;
+  int32 frame = 6;
+  repeated userinfo.HomeRoleInfo home_role_info = 8;
+  bool show_home_role = 9;
+  int32 exp = 10;
+  int32 lv = 11;
+  int32 extra_energy = 12;
+  int64 last_energy_ts = 13;
+  int64 created = 14;
+  int64 last_login = 15;
+  uint32 guide_rec = 16;
+  int64 guide_finish_unix = 17;
+  int32 language = 18;
+  int32 energy_purchased = 19;
+  int32 hotness = 20;
+  int64 last_rename_unix = 21;
+  repeated userinfo.Sticker home_stickers = 22;
+  repeated userinfo.Sticker info_stickers = 23;
+  bool hide_info_role = 24;
+  repeated userinfo.HomeBackgroundInfo home_background_info = 28;
+  int32 music_id = 29;
+  bool is_home_stickers_char_seperated = 30;
+  repeated userinfo.CharSticker char_stickers = 31;
+}
+
+message CharacterBag {
+  int64 id = 1;
+  repeated character.Character chars = 2;
+  repeated character.TeamInfo battle_teams = 3;
+  repeated character.TeamInfo display_teams = 4;
+  character.TeamInfo fire = 5;
+  character.TeamInfo water = 6;
+  character.TeamInfo tree = 7;
+  character.TeamInfo ban_fire = 8;
+  character.TeamInfo ban_water = 9;
+  character.TeamInfo ban_tree = 10;
+  repeated character.MultiTeamInfo normal_multi_team = 11;
+  repeated character.MultiTeamInfo fire_multi_team = 12;
+  repeated character.MultiTeamInfo water_multi_team = 13;
+  repeated character.MultiTeamInfo tree_multi_team = 14;
+}
+
+message Event {
+  int64 id = 1;
+  repeated activity.Questionnaire questionnaires = 2;
+  repeated activity.EventRecord event_records = 3;
+}
+
+message ItemBag {
+  int64 id = 1;
+  repeated item.Item items = 2;
+}
+
+message LoginRes {
+  Basic basic = 1;
+  ItemBag item_bag = 2;
+  CharacterBag char_bag = 3;
+  Social social = 4;
+  guild.Guild guild = 5;
+  mail.MailBox mailbox = 6;
+  Stage stage = 7;
+  Event event = 8;
+  dispatch.DispatchReponse dispatch = 9;
+  mall.Mall mall = 11;
+  Yiff yiff = 12;
+  store.GetStoreResponse store = 13;
+  bool can_get_sign_in_reward = 14;
+}
+
+message Social {
+  int64 id = 1;
+  int64 version = 2;
+  social.UserExtraInfo info = 3;
+  int32 guild_energy_purchased = 4;
+}
+
+message Stage {
+  int64 id = 1;
+  repeated stage.Rec chapter = 2;
+  repeated stage.Rec stage = 3;
+  map<int32, stage.StageChallengeTimes> challenge_times = 4;
+}
+
+message Yiff {
+  int64 id = 1;
+  repeated yiff.Bound bound = 2;
+  int32 remain_times = 3;
+  int32 purchase_times = 4;
+}

@@ -199,7 +199,7 @@ impl Game {
             rec.expiry = now + days * 86_400;
             rec.is_claimed = false;
         }
-        println!("    subscription {merch} until {}", rec.expiry);
+        say!("    subscription {merch} until {}", rec.expiry);
         Ok(privs
             .iter()
             .filter(|p| p.0 == PRIV_ONCE)
@@ -246,7 +246,7 @@ impl Game {
         }
         acc.extra.sub_claimed.insert(r.id, today);
         self.subs_new_day(acc);
-        println!("    subscription {} daily reward: {:?}", r.id, rewards.iter().map(|i| (i.id, i.set[0].qty)).collect::<Vec<_>>());
+        say!("    subscription {} daily reward: {:?}", r.id, rewards.iter().map(|i| (i.id, i.set[0].qty)).collect::<Vec<_>>());
         Ok(pb::mall::ClaimSubscriptionResponse { code: 1, rewards }.encode_to_vec())
     }
 }
@@ -339,7 +339,7 @@ impl Game {
         if acc.extra.pass_exp_owner != merch {
             if acc.extra.pass_exp_owner != 0 {
                 acc.set_qty(exp_item, 0, &self.tables);
-                println!("    battle pass {merch}: a new season, pass EXP starts over");
+                say!("    battle pass {merch}: a new season, pass EXP starts over");
             }
             acc.extra.pass_exp_owner = merch;
         }
@@ -392,7 +392,7 @@ impl Game {
             p.vip_reward_flag = reached.max(vip);
         }
         let (base, vip) = (p.base_reward_flag, p.vip_reward_flag);
-        println!("    battle pass {merch} claimed to rank {reached}: {got:?}");
+        say!("    battle pass {merch} claimed to rank {reached}: {got:?}");
         Ok(pb::mall::BattlePassClaimResponse {
             base_reward_flag: base,
             vip_reward_flag: vip,
@@ -414,7 +414,7 @@ impl Game {
         let gems = i64::from(r.exp / 10) * self.tables.constant("pass_exp_price", 3.0) as i64;
         self.pay(acc, vec![(crate::game::GEM, gems)])?;
         acc.add(exp_item, i64::from(r.exp), &self.tables).map_err(|e| e.to_string())?;
-        println!("    battle pass {merch}: {} pass EXP for {gems} gems", r.exp);
+        say!("    battle pass {merch}: {} pass EXP for {gems} gems", r.exp);
         Ok(pb::mall::BuyBattlePassExpResponse { consume_gem: vec![acc.item(crate::game::GEM)], increase_item: vec![acc.item(exp_item)] }
             .encode_to_vec())
     }

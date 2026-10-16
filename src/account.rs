@@ -286,7 +286,7 @@ impl Account {
             }
         }
         if lv > basic.lv {
-            println!("    account level {} -> {lv} (+{energy} energy)", basic.lv);
+            say!("    account level {} -> {lv} (+{energy} energy)", basic.lv);
         }
         basic.lv = lv;
         basic.exp = exp as i32;

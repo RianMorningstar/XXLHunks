@@ -18,7 +18,7 @@ the data it needs comes from your own copy of the game.
   characters, votes and Sausage Bro. Some older events need art that the current game files no longer have.
 - Guilds (wishes, the wishing pool, the board, roles) and the Escape Room with live updates.
 - Friends: follows, feeds, pokes, likes and the weekly ranking.
-- An admin page for logins, accounts, items, events and test tools.
+- An admin panel for running the server (see below).
 
 Not done: real-money purchases (H Coin is set on the admin page), and features the client has no screens for.
 
@@ -39,7 +39,7 @@ cargo build --release
 ```
 
 Point `WOOFIA_CDN` in both `.env` files at your CDN copy first. Then open http://127.0.0.1:8720/admin on the same
-machine and make a login (name and password) for the game's login screen. An account is made the first time a
+machine and add a login (name and password) for the game's login screen. An account is made the first time a
 login reaches the game.
 
 ## Settings
@@ -54,16 +54,31 @@ every one with working values; the environment wins over `.env`.
 | `WOOFIA_CDN` | `cdn` | your copy of the CDN files |
 | `WOOFIA_TABLES` | `tables/json` | JSON tables (from the extractor) |
 | `WOOFIA_RAW_TABLES` | `tables/raw` | raw table files (from the extractor) |
-| `WOOFIA_ITEM_NAMES` | `tables/items.json` | item names for the admin page (from the extractor) |
+| `WOOFIA_ITEM_NAMES` | `tables/items.json` | item and buddy names for the admin panel (from the extractor) |
+| `WOOFIA_ART` | `tables/art` | avatars and the sign-in picture for the admin panel (from the extractor) |
 | `WOOFIA_BUNDLE_KEY` | | the client's bundle key: lets the server write event dates into the game's tables |
 | `WOOFIA_SDK_KEY`, `WOOFIA_SDK_NONCE` | | the login kit's key and nonce: lets the server answer its domain lists |
 | `WOOFIA_SSE_URL` | `http://127.0.0.1:8720/` | live update address given to clients that come through the proxy |
-| `WOOFIA_ADMIN_KEY` | | lets other machines use the admin page (`/admin?key=...`); 16 characters or more |
+| `WOOFIA_ADMIN_KEY` | | lets other machines sign in to the admin panel; 16 characters or more |
 | `WOOFIA_REPLAY` | | a folder of captured replies, for calls the server has no logic for (research only) |
-| `WOOFIA_TEST_CLOCK` | | tests only: the admin page can move the game clock |
+| `WOOFIA_TEST_CLOCK` | | tests only: the admin panel can move the game clock |
 
-The admin page only answers this machine unless `WOOFIA_ADMIN_KEY` is set, and it refuses forms sent from other
-sites.
+## The admin panel
+
+http://127.0.0.1:8720/admin, in the game's look:
+- a dashboard: who is online and where, running events, recent changes;
+- accounts: search, suspend or ban, rename, logins and devices, delete with a backup first;
+- each player's buddies, items, mailbox, stages and guild;
+- an event calendar: rerun past events, change dates;
+- guilds: roles, kick, rename, disband, the Escape Room;
+- redeem codes with end dates and use limits, and mail to many players now or at a set time;
+- the live log and a record of every change (`data/logs/admin.log`);
+- backups: snapshots of everything or one account, restore, a daily automatic snapshot, download as `.tar`;
+- the settings and test tools.
+
+It answers the machine the server runs on without a key. Any other machine, including a browser outside a Docker
+container, signs in with `WOOFIA_ADMIN_KEY`; with no key set, other machines get nothing. The avatars and the
+sign-in picture come from the extractor's art step; without them the panel shows initials.
 
 ## Connecting the game
 
@@ -83,7 +98,10 @@ stands for from its path.
 
 - `src/` the server. `game.rs` routes the game's calls; the feature modules (`stages.rs`, `chars.rs`, `mall.rs`,
   `guilds.rs`, `dungeon.rs`, `events.rs`, `missions.rs`, `social.rs` and others) hold their logic.
-  `playhorny.rs` is the login service stand-in, `direct.rs` the platform calls, `admin.rs` the admin page.
+  `playhorny.rs` is the login service stand-in, `direct.rs` the platform calls.
+- `admin/` the admin panel's page, styles and script (built into the server); `src/adminweb.rs` its sign-in and
+  actions, `src/adminapi.rs` its read API, `src/manage.rs` bans, codes and mail to many players,
+  `src/backups.rs` snapshots.
 - `src/fresh_account.json` a new account's starting state.
 - `proto/` the game's message definitions; `build.rs` turns them into Rust types.
 - `extractor/` the table extractor (Python).

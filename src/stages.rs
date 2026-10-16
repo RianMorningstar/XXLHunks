@@ -422,7 +422,7 @@ impl Game {
             energy_paid: energy,
             part,
         };
-        println!("    stage {} start{} (energy {energy}), battle {}", r.stage_id,
+        say!("    stage {} start{} (energy {energy}), battle {}", r.stage_id,
                  if sweep { format!(", sweep x{runs}") } else { String::new() }, pending.sn);
         let resp = pb::stage::DoStageResponse { stage_sn: pending.sn.clone(), rs: crate::game::random_below(1 << 31) as i32 };
         acc.extra.pending_stage = Some(pending);
@@ -455,7 +455,7 @@ impl Game {
             if back > 0 {
                 acc.add(ENERGY, i64::from(back), &self.tables).map_err(|e| e.to_string())?;
             }
-            println!("    stage {} lost (rounds {}, dead {}, retreat {}), {back} energy back", p.stage, res.wave,
+            say!("    stage {} lost (rounds {}, dead {}, retreat {}), {back} energy back", p.stage, res.wave,
                      res.dead, res.retreat);
             // the client sets the day's tries from play_times even on a loss
             let play_times = self.day_tries_played(acc, &p);
@@ -552,7 +552,7 @@ impl Game {
                 self.feed(acc, crate::social::FeedRec { kind: crate::social::FEED_CHALLENGE_STAGE, stage: p.stage, ..Default::default() });
             }
         }
-        println!("    stage {} won, flag {flag} (best {best}){}, rewards {lists:?}", p.stage,
+        say!("    stage {} won, flag {flag} (best {best}){}, rewards {lists:?}", p.stage,
                  if first_clear { ", first clear" } else { "" });
         let mut final_items: Vec<pb::item::Item> = changed.iter().map(|&id| acc.item(id)).collect();
         // account EXP only when some was gained (as captured)
@@ -605,7 +605,7 @@ impl Game {
         m.phase = m.used_char_id.len() as i32;
         // the run keeps its number: seen in game, the last battle ends with the first one
         p.part += 1;
-        println!("    stage {} battle {} of {battles} won, run {} goes on", p.stage, p.part, p.sn);
+        say!("    stage {} battle {} of {battles} won, run {} goes on", p.stage, p.part, p.sn);
         let resp = pb::stage::DoStageResponse { stage_sn: p.sn.clone(), rs: crate::game::random_below(1 << 31) as i32 };
         acc.extra.pending_stage = Some(p);
         Ok(resp.encode_to_vec())
@@ -620,7 +620,7 @@ impl Game {
         if acc.extra.pending_stage.as_ref().is_some_and(|p| p.stage == r.stage_id) {
             acc.extra.pending_stage = None;
         }
-        println!("    stage {} back to its first battle", r.stage_id);
+        say!("    stage {} back to its first battle", r.stage_id);
         Ok(Vec::new())
     }
 
@@ -657,7 +657,7 @@ impl Game {
         for &(id, n) in &prize {
             acc.add(id, i64::from(n), &self.tables).map_err(|e| e.to_string())?;
         }
-        println!("    chapter {} prize {} ({have} stars): {prize:?}", r.chapter_id, r.flag);
+        say!("    chapter {} prize {} ({have} stars): {prize:?}", r.chapter_id, r.flag);
         Ok(pb::stage::ChapterPrizeResponse { prize: item_list(&prize).items }.encode_to_vec())
     }
 }

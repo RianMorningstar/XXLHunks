@@ -78,7 +78,7 @@ impl Game {
                 }
             }
         }
-        println!("    Sausage Bro chance {}: {} -> {energy} energy", index + 1,
+        say!("    Sausage Bro chance {}: {} -> {energy} energy", index + 1,
                  if dice_roll { format!("dice {dice:?}") } else { "direct".into() });
         let resp = pb::sausage::GetSausageResponse {
             sausage_rec: Some(sausage_rec),

@@ -95,8 +95,50 @@ impl Accounts {
         self.index.iter().map(|(name, &id)| (id, name.clone())).collect()
     }
 
-    pub fn first_id(&self) -> Option<i64> {
-        self.index.values().copied().min()
+    /// Stop a client account name playing its account (its next login makes a new one).
+    pub fn unbind(&mut self, name: &str) -> Option<i64> {
+        let old = self.index.remove(name);
+        if old.is_some() {
+            self.save_index();
+        }
+        old
+    }
+
+    /// Every client account name that plays this account.
+    pub fn names_of(&self, id: i64) -> Vec<String> {
+        self.index.iter().filter(|(_, v)| **v == id).map(|(k, _)| k.clone()).collect()
+    }
+
+    /// Each account once (several client names can play one).
+    pub fn account_ids(&self) -> Vec<i64> {
+        let mut ids: Vec<i64> = self.index.values().copied().collect();
+        ids.sort_unstable();
+        ids.dedup();
+        ids
+    }
+
+    /// Forget a loaded account (its files were replaced or removed).
+    pub fn unload(&mut self, id: i64) {
+        self.loaded.remove(&id);
+    }
+
+    /// Remove an account: its files, every name that plays it, and the loaded copy.
+    pub fn remove(&mut self, id: i64) {
+        self.index.retain(|_, v| *v != id);
+        self.save_index();
+        self.loaded.remove(&id);
+        let _ = std::fs::remove_file(self.path(id));
+        let _ = std::fs::remove_file(self.path(id).with_extension("json"));
+    }
+
+    /// The accounts folder.
+    pub fn dir(&self) -> &Path {
+        &self.dir
+    }
+
+    /// The account a client account name plays, without making one.
+    pub fn id_of(&self, name: &str) -> Option<i64> {
+        self.index.get(name).copied()
     }
 
     /// The account for a client account name, created from the new-account snapshot the first time.
@@ -121,7 +163,7 @@ impl Accounts {
         let id = self.index.values().copied().max().unwrap_or(100_000_000).max(old_id) + 1;
         renumber(&mut login, old_id, id);
         let acc = Account::create(&self.path(id), &login.encode_to_vec())?;
-        println!("    new account {id} for {name}");
+        say!("    new account {id} for {name}");
         self.loaded.insert(id, acc);
         self.index.insert(name.to_string(), id);
         self.save_index();

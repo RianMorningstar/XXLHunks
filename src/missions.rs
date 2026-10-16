@@ -219,7 +219,7 @@ impl Game {
         }
         let after = (m.claimed.len(), m.accepted.len(), m.others.len());
         if before != after {
-            println!("    missions: an event ran again, {} claim(s), {} accept(s), {} captured state(s) of earlier runs dropped",
+            say!("    missions: an event ran again, {} claim(s), {} accept(s), {} captured state(s) of earlier runs dropped",
                      before.0 - after.0, before.1 - after.1, before.2 - after.2);
         }
     }
@@ -355,7 +355,7 @@ impl Game {
             if !acc.extra.missions.accepted.contains_key(&id) {
                 let base = if Self::is_state(d.mission_condition, d.condition_parameter) { 0 } else { self.mission_value(acc, &d) };
                 acc.extra.missions.accepted.insert(id, (base, end));
-                println!("    mission {id} accepted (event {}, ends {end})", d.event_seq);
+                say!("    mission {id} accepted (event {}, ends {end})", d.event_seq);
             } else if daily_event(id) {
                 acc.extra.missions.accepted.get_mut(&id).unwrap().1 = end;
             }
@@ -432,7 +432,7 @@ impl Game {
                 m.others.insert(s.id, (i64::from(s.value), s.expired_unix));
             }
         }
-        println!("    missions ({query}): {} claims and {} event missions so far from the captures", m.claimed.len(), m.others.len());
+        say!("    missions ({query}): {} claims and {} event missions so far from the captures", m.claimed.len(), m.others.len());
     }
 
     pub(crate) fn mission_archive(&self, acc: &Account) -> pb::mission::MArchives {
@@ -552,7 +552,7 @@ impl Game {
                 rewards.push(pb::item::Item { id: item, set: vec![pb::model::TlQty { qty: n, unix: 0 }] });
                 final_items.push(acc.item(item));
             }
-            println!("    mission {id} claimed ({value}/{})", d.finish_value);
+            say!("    mission {id} claimed ({value}/{})", d.finish_value);
         }
         self.activity_expiry(acc);
         let final_items = final_items.into_iter().map(|it| acc.item(it.id)).collect();

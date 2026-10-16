@@ -42,7 +42,7 @@ impl LinkStore {
         LinkStore { path, codes }
     }
 
-    fn save(&self) {
+    pub fn save(&self) {
         let tmp = self.path.with_extension("tmp");
         if std::fs::write(&tmp, serde_json::to_vec_pretty(&self.codes).unwrap()).is_ok() {
             let _ = std::fs::rename(&tmp, &self.path);
@@ -101,7 +101,7 @@ impl Game {
         let exp = now_secs() + CODE_LIFE;
         store.codes.insert(code.clone(), Link { account: id, password: r.password, expires: exp });
         store.save();
-        println!("    account {id}: link code made, expires {exp}");
+        say!("    account {id}: link code made, expires {exp}");
         Ok(pb::login::GenLinkCodeResponse { res_code: 0, link_code: code, exp }.encode_to_vec())
     }
 
@@ -128,9 +128,9 @@ impl Game {
         let link = {
             let store = self.link_codes.lock().unwrap();
             match store.codes.get(&code) {
-                Some(l) if l.expires > now_secs() && l.password == r.password => l.clone(),
+                Some(l) if l.expires > now_secs() && l.password == r.password && self.ban_message(l.account).is_none() => l.clone(),
                 _ => {
-                    println!("    link code {code}: wrong, expired or unknown");
+                    say!("    link code {code}: wrong, expired or unknown");
                     return answer(1);
                 }
             }
@@ -145,7 +145,7 @@ impl Game {
             return Reply::Refused(400, format!("link code {code}: no account {}", link.account));
         };
         if now_acc.as_ref().is_some_and(|a| a.lv >= KEEP_LEVEL) || purchased {
-            println!("    link code {code}: {} has a level {} account{}, not overwritten", r.accname,
+            say!("    link code {code}: {} has a level {} account{}, not overwritten", r.accname,
                      now_acc.as_ref().map_or(0, |a| a.lv), if purchased { " with purchases" } else { "" });
             // the client's ConnectLoginMain opens the link panel in its "cannot be overwritten" mode with both
             // accounts' cards, so they come with code 4 too
@@ -153,7 +153,7 @@ impl Game {
             return Reply::Proto(pb::login::LinkCodeResponse { acc_response: Some(acc_response), now_acc, ori_acc: Some(ori_acc) }
                 .encode_to_vec());
         }
-        println!("    link code {code}: {} may move to account {}", r.accname, link.account);
+        say!("    link code {code}: {} may move to account {}", r.accname, link.account);
         let acc_response = pb::login::AccResponse { res_code: 0, id: link.account, login_token: Accounts::login_token(link.account) };
         Reply::Proto(pb::login::LinkCodeResponse { acc_response: Some(acc_response), now_acc, ori_acc: Some(ori_acc) }.encode_to_vec())
     }
@@ -167,7 +167,7 @@ impl Game {
         };
         // a failure answers res_code 1 ("connect failed"); an HTTP 401 would send the client back to the login
         let failed = |why: String| {
-            println!("    binding refused: {why}");
+            say!("    binding refused: {why}");
             Reply::Proto(pb::login::BindingResponse { res_code: 1 }.encode_to_vec())
         };
         if token_account(&r.login_token) != Some(r.id) {
@@ -188,7 +188,7 @@ impl Game {
             store.save();
         }
         let old = accounts.bind(&info.accname, r.id);
-        println!("    {} now plays account {}{}", info.accname, r.id, old.map(|o| format!(" (was {o}, kept unbound)")).unwrap_or_default());
+        say!("    {} now plays account {}{}", info.accname, r.id, old.map(|o| format!(" (was {o}, kept unbound)")).unwrap_or_default());
         Reply::Proto(pb::login::BindingResponse { res_code: 0 }.encode_to_vec())
     }
 }

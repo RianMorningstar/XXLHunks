@@ -859,8 +859,8 @@ def main():
     st, body = call("GET", "/g/guild/wish/receive", token=token)
     check("a wish that is not full cannot be received", st == 400, f"status {st}")
 
-    st, body = call("GET", "/admin", host="127.0.0.1")
-    check("admin page lists both accounts", st == 200 and str(acc_id).encode() in body and str(new_id).encode() in body)
+    st, body = call("GET", "/admin/api/accounts", host="127.0.0.1")
+    check("the admin panel lists both accounts", st == 200 and str(acc_id).encode() in body and str(new_id).encode() in body)
     st, body = call("POST", "/admin/item", f"account={new_id}&id=3&qty=12345".encode(), host="127.0.0.1")
     st, body = call("GET", "/g/loginres", token=new_token)
     check("admin sets an item on the chosen account", qty(decode("save.LoginRes", body)["itemBag"]["items"], 3) == 12345)
@@ -2329,13 +2329,115 @@ def main():
           st0 == 400 and over == 3 and lv == 2 and all(c == 1 for c in codes), f"{st0}, {over}, lv {lv}, {len(codes)} days, {set(codes)}")
 
     st, body = call("GET", "/admin", host=GAME)
-    check("admin page is not reachable through the game host", b"Accounts" not in body)
+    st2, body2 = call("GET", "/admin/api/accounts", host=GAME)
+    check("the admin panel is not reachable through the game host", b"xxlhunks-admin" not in body and str(acc_id).encode() not in body2)
     st, _ = call("POST", "/admin/hcoin", f"account={acc_id}&qty=1".encode(), host="127.0.0.1",
                  extra={"Origin": "http://somewhere.example"})
     st2, _ = call("POST", "/admin/hcoin", f"account={acc_id}&qty=1".encode(), host="127.0.0.1:8721",
                   extra={"Origin": "http://127.0.0.1:8721"})
     check("an admin form sent from another site is refused, from the admin page itself it works", st == 403 and st2 == 200,
           f"{st}, {st2}")
+
+    # the admin panel: its page, the read API and the management actions
+    def admin(path, body=""):
+        st, b = call("POST", path, body.encode(), host="127.0.0.1")
+        try:
+            return st, json.loads(b)
+        except ValueError:
+            return st, {}
+
+    def admin_get(what):
+        st, b = call("GET", f"/admin/api/{what}", host="127.0.0.1")
+        return json.loads(b) if st == 200 else {}
+
+    st, body = call("GET", "/admin", host="127.0.0.1")
+    check("the admin panel page loads on this machine", st == 200 and b'data-panel="xxlhunks-admin"' in body)
+    st, r = admin("/admin/signin", "key=wrong")
+    check("signing in from this machine needs no key", st == 200 and r.get("ok") is True, f"{st} {r}")
+    o = admin_get("overview")
+    check("the overview answers (accounts, online, events)", o.get("accounts", 0) >= 2 and "online" in o and "running_events" in o, str(o)[:200])
+    st, r = admin("/admin/mail", f"id=3&qty=1")
+    check("an account action without an account is refused, not run on the first account", r.get("ok") is False, f"{r}")
+
+    # redeem codes: a use limit, an end date, turned off
+    def redeem_code(c, tok):
+        st, b = call("POST", "/g/mall/vcex", field_str(1, c), tok)
+        return str(decode("vc.VCExchangeResponse", b).get("resCode", 0)) if st == 200 else f"status {st}"
+    admin("/admin/code-save", "code=SMOKEONE&items=3:5&limit=1")
+    admin("/admin/code-save", "code=SMOKEOLD&items=3:5&expires=2020-01-01")
+    admin("/admin/code-save", "code=SMOKEOFF&items=3:5")
+    admin("/admin/code-change", "code=SMOKEOFF&do=off")
+    first, second = redeem_code("smokeone", token), redeem_code("SMOKEONE", new_token)
+    old, off = redeem_code("SMOKEOLD", token), redeem_code("SMOKEOFF", token)
+    codes = {c["code"]: c for c in admin_get("codes").get("codes", [])}
+    check("redeem codes: a one-use code works once (0, then 1 for the next player), past its date 1, turned off 2",
+          (first, second, old, off) == ("0", "1", "1", "2") and codes.get("SMOKEONE", {}).get("used") == 1, f"{first} {second} {old} {off}")
+
+    # mail to one player and take it back
+    st, r = admin("/admin/mail-one", f"account={new_id}&subject=Smoke take back&items=3:7&days=7")
+    mails = admin_get(f"account/{new_id}/mail").get("mail", [])
+    sn = next((m["sn"] for m in mails if m["subject"] == "Smoke take back" and m["state"] == "unclaimed"), "")
+    st, r2 = admin("/admin/mail-take", f"account={new_id}&sn={sn}")
+    left = [m for m in admin_get(f"account/{new_id}/mail").get("mail", []) if m["subject"] == "Smoke take back"]
+    check("a mail sent from the panel can be taken back before it is claimed", r.get("ok") and sn and r2.get("ok") and not left, f"{r} {r2}")
+
+    # mail to many: now, then one for later that is cancelled
+    st, r = admin("/admin/mail-group", "to=all&subject=Smoke to everyone&content=Hello&items=3:1&days=7")
+    group = admin_get("groupmail").get("mails", [])
+    st, r2 = admin("/admin/mail-group", "to=level:1&subject=Smoke later&at=2099-01-01T10:00")
+    later = next((m for m in admin_get("groupmail").get("mails", []) if m["subject"] == "Smoke later"), {})
+    st, r3 = admin("/admin/mail-group-change", f"id={later.get('id', 0)}&do=cancel")
+    got = [m for m in decode("mail.MailBox", call("GET", "/g/mailbox/0", token=token)[1]).get("mails", [])
+           if "Smoke to everyone" in m.get("mailText", {}).get("subject", "")]
+    check("mail to everyone reaches each account; a timed one waits and can be cancelled",
+          r.get("ok") and group and group[0].get("copies", 0) >= 2 and len(got) == 1 and later.get("sent") is None and r3.get("ok"),
+          f"{r} {r2} {r3}")
+
+    # suspend: the login screen says why, a game in progress is sent back to the login; lifted, it plays again
+    admin("/admin/ban", f"account={new_id}&until=2099-01-01&reason=smoke test")
+    st_g, _ = call("GET", "/g/loginres", token=new_token)
+    st_p, r = ph("POST", "/v1/users/login", {"client_id": "84f38c1514", "account": "smoke-new@woofia.test", "auth_kind": 1, "password": "smoke-new-pass1"})
+    st_a, body = call("POST", "/acc/auth", acc_info(new_game_id, new_ph_tok))
+    acc_code = decode("login.AccResponse", body).get("resCode") if st_a == 200 else st_a
+    admin("/admin/unban", f"account={new_id}")
+    st_g2, _ = call("GET", "/g/loginres", token=new_token)
+    check("a suspended account: game calls 401, the login screen says until when, /acc/auth refuses; lifted, it plays",
+          st_g == 401 and st_p == 400 and "suspended until" in r.get("result", {}).get("msg", "") and str(acc_code) == "403"
+          and st_g2 == 200, f"{st_g} {st_p} {r.get('result')} {acc_code} {st_g2}")
+
+    # rename from the panel
+    st, r = admin("/admin/rename", f"account={new_id}&name=Tigerpaw")
+    st, body = call("GET", "/g/loginres", token=new_token)
+    check("the panel renames a player (the game's name rules)", decode("save.LoginRes", body)["basic"].get("name") == "Tigerpaw", f"{r}")
+
+    # a snapshot of one account, a change, then the snapshot put back
+    gems_before = qty(decode("save.LoginRes", call("GET", "/g/loginres", token=new_token)[1])["itemBag"]["items"], 3)
+    st, r = admin("/admin/backup", f"what=account&account={new_id}&note=smoke")
+    snap = next((s["name"] for s in admin_get("backups").get("snapshots", []) if s.get("account") == new_id and s.get("note") == "smoke"), "")
+    admin("/admin/item", f"account={new_id}&id=3&qty=777")
+    st, r2 = admin("/admin/backup-restore", f"name={snap}")
+    gems_after = qty(decode("save.LoginRes", call("GET", "/g/loginres", token=new_token)[1])["itemBag"]["items"], 3)
+    st_t, tar = call("GET", f"/admin/backup/{snap}.tar", host="127.0.0.1")
+    check("a snapshot of one account puts it back as it was, and downloads as a .tar",
+          r.get("ok") and snap and r2.get("ok") and gems_after == gems_before and st_t == 200 and tar[257:262] == b"ustar",
+          f"{r} {r2} {gems_before} {gems_after} {st_t}")
+
+    # the read API for one player's tabs, and the guild tools
+    tabs = {t: admin_get(f"account/{acc_id}/{t}") for t in ("buddies", "items", "mail", "stages", "guild")}
+    check("the player tabs answer (buddies, items, mail, stages, guild)",
+          tabs["buddies"].get("buddies") and tabs["items"].get("items") and "mail" in tabs["mail"] and tabs["stages"].get("chapters")
+          and "energy" in tabs["guild"], str({k: list(v)[:3] for k, v in tabs.items()}))
+    guilds = admin_get("guilds").get("guilds", [])
+    if guilds:
+        g0 = guilds[0]
+        st, r = admin("/admin/guild-rename", f"guild={g0['id']}&name=Furball")
+        renamed = admin_get(f"guild/{g0['id']}").get("name")
+        admin("/admin/guild-rename", f"guild={g0['id']}&name={g0['name']}")
+        check("the panel renames a guild", r.get("ok") and renamed == "Furball", f"{r}")
+    ev = admin_get("events")
+    check("the event calendar answers (the window and past events)", "window" in ev and len(ev.get("past", [])) > 10, str(ev)[:120])
+    log = open(os.path.join(DATA, "logs", "admin.log"), encoding="utf-8").read() if os.path.exists(os.path.join(DATA, "logs", "admin.log")) else ""
+    check("every panel change is in the admin record", "mail-one" in log and "ban" in log and "code-save" in log, log[-200:])
 
     # the platform calls, answered by this server (no captures)
     cats = "category=9b0aceb48c&category=228b53e117"

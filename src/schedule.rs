@@ -19,7 +19,7 @@ use crate::game::{Game, game_day, now_secs};
 use crate::pb;
 
 /// The data catalog of this client build and the main_data bundle it lists.
-const CATALOG: &str = "data_BD202610061503";
+pub(crate) const CATALOG: &str = "data_BD202610061503";
 const MAIN_DATA_PREFIX: &str = "main_data_assets_all_";
 
 pub fn load(data_dir: &Path) -> BTreeMap<i32, (i64, i64)> {
@@ -147,7 +147,7 @@ pub fn rebuild(cdn: &Path, patch: &Path, events: &BTreeMap<i32, (i64, i64)>, mal
 }
 
 /// Unix seconds of a UTC date "YYYY-MM-DD" at midnight.
-fn parse_date(s: &str) -> Option<i64> {
+pub(crate) fn parse_date(s: &str) -> Option<i64> {
     let mut it = s.trim().split('-').map(|p| p.parse::<i64>().ok());
     let (y, m, d) = (it.next()??, it.next()??, it.next()??);
     if !(1..=12).contains(&m) || !(1..=31).contains(&d) {
@@ -163,7 +163,7 @@ fn parse_date(s: &str) -> Option<i64> {
     Some((era * 146_097 + doe - 719_468) * 86_400)
 }
 
-fn fmt_time(t: i64) -> String {
+pub(crate) fn fmt_time(t: i64) -> String {
     if t <= 0 {
         return "-".into();
     }
@@ -242,10 +242,6 @@ fn art_status(patch: &Path) -> std::collections::HashMap<String, (String, Vec<St
         .unwrap_or_default()
 }
 
-fn esc(s: &str) -> String {
-    s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;").replace('"', "&quot;")
-}
-
 impl Game {
     /// An event's dates: the schedule's, else Event_C's.
     pub(crate) fn event_window(&self, id: i32) -> Option<(i64, i64)> {
@@ -275,7 +271,7 @@ impl Game {
                 if r.start_time != start || r.end_time != end {
                     r.start_time = start;
                     r.end_time = end;
-                    println!("    event {id}: record moved to the run {} to {}", fmt_time(start), fmt_time(end));
+                    say!("    event {id}: record moved to the run {} to {}", fmt_time(start), fmt_time(end));
                 }
             }
         }
@@ -290,13 +286,13 @@ impl Game {
                     r.nth_day = nth;
                     acc.extra.signins.remove(&id);
                     acc.extra.signin_filled.remove(&id);
-                    println!("    sign-in {id}: new run {} to {}", fmt_time(start), fmt_time(end));
+                    say!("    sign-in {id}: new run {} to {}", fmt_time(start), fmt_time(end));
                 }
                 None => {
                     ev.event_records.push(pb::activity::EventRecord { id, start_time: start, end_time: end, nth_day: nth, ..Default::default() });
                     acc.extra.signins.remove(&id);
                     acc.extra.signin_filled.remove(&id);
-                    println!("    sign-in {id}: run {} to {}", fmt_time(start), fmt_time(end));
+                    say!("    sign-in {id}: run {} to {}", fmt_time(start), fmt_time(end));
                 }
             }
         }
@@ -336,7 +332,7 @@ impl Game {
     /// Admin: add or change a run ("id", "date" YYYY-MM-DD or blank for now, "days" or blank for the original
     /// length; an event page's parts move with it), remove one with its parts ("remove"), or clear the schedule
     /// ("clear").
-    pub(crate) fn schedule_change(&self, cdn: &Path, patch: &Path, form: &str) -> String {
+    pub(crate) fn schedule_change(&self, cdn: &Path, patch: &Path, form: &str) -> crate::admin::Done {
         let field = |k: &str| crate::admin::field(form, k).map(|v| v.trim().to_string()).filter(|v| !v.is_empty());
         let mut events = self.schedule.lock().unwrap().clone();
         let what = if field("clear").is_some() {
@@ -354,17 +350,17 @@ impl Game {
                 format!("Event {id} removed from the schedule, with its parts {parts:?}.")
             }
         } else {
-            let Some(id) = field("id").and_then(|v| v.parse::<i32>().ok()) else { return "Give an event id.".into() };
-            let Some(&(orig_start, orig_end)) = self.tables.events.get(&id) else { return format!("No event {id} in Event_C.") };
+            let Some(id) = field("id").and_then(|v| v.parse::<i32>().ok()) else { return Err("Give an event id.".into()) };
+            let Some(&(orig_start, orig_end)) = self.tables.events.get(&id) else { return Err(format!("No event {id} in Event_C.")) };
             if self.tables.event_days.contains_key(&id) {
-                return format!("Event {id} runs per player from their start (newcomer event); it has no dates to change.");
+                return Err(format!("Event {id} runs per player from their start (newcomer event); it has no dates to change."));
             }
             let now = now_secs();
             let start = match field("date") {
                 // the original time of day on the given date (events open at 07:30 UTC, sign-ins at 21:00)
                 Some(d) => match parse_date(&d) {
                     Some(t) => t + orig_start.rem_euclid(86_400),
-                    None => return format!("Date {d:?} is not YYYY-MM-DD."),
+                    None => return Err(format!("Date {d:?} is not YYYY-MM-DD.")),
                 },
                 // sign-ins start at the daily reset (21:00 UTC) like every captured campaign: one started mid-day
                 // makes a login that pays it alone, and the client then plays empty reward popups for the daily
@@ -374,13 +370,13 @@ impl Game {
             };
             let length = match field("days").map(|v| v.parse::<i64>()) {
                 Some(Ok(d)) if d > 0 => d * 86_400,
-                Some(_) => return "Days must be a number above 0.".into(),
+                Some(_) => return Err("Days must be a number above 0.".into()),
                 None if orig_end > orig_start && orig_start > 0 => orig_end - orig_start,
                 None => 14 * 86_400,
             };
             let end = start + length;
             if end > i64::from(i32::MAX) {
-                return "That end date does not fit the client's table.".into();
+                return Err("That end date does not fit the client's table.".into());
             }
             events.insert(id, (start, end));
             // the parts of an event page (its missions halves, Find Character runs, vote) move with it, by the same
@@ -404,47 +400,42 @@ impl Game {
             Ok(msg) => {
                 save(&self.data_dir, &events);
                 *self.schedule.lock().unwrap() = events;
-                format!("{what} {msg}")
+                Ok(format!("{what} {msg}"))
             }
-            Err(e) => format!("Not changed: {e}"),
+            Err(e) => Err(format!("Not changed: {e}")),
         }
     }
 
-    /// The admin event schedule page.
-    pub(crate) fn schedule_page(&self, cdn: &Path, patch: &Path, message: &str) -> String {
+    /// The admin event calendar: events running or scheduled near now (with their dates and kinds), and the past
+    /// events that can run again.
+    pub(crate) fn schedule_json(&self, cdn: &Path, patch: &Path) -> serde_json::Value {
         let now = now_secs();
         let events = self.schedule.lock().unwrap().clone();
         let banner = |id: i32| self.tables.event_banners.get(&id).cloned().unwrap_or_default();
         let name = |id: i32| match event_names().get(&id) {
-            Some(n) => esc(n),
+            Some(n) => n.clone(),
             None => match self.tables.event_parents.get(&id).and_then(|p| event_names().get(p)) {
-                Some(n) => format!("{} (part)", esc(n)),
-                None => String::new(),
+                Some(n) => format!("{n} (part)"),
+                None => format!("Event {id}"),
             },
         };
         let status = art_status(patch);
-        let art = |id: i32| -> String {
+        // ok, grafted (brought back from an older build), lost (a stand-in), missing, no page, or none (no banner)
+        let art = |id: i32| -> (String, String) {
             if let Some((st, notes)) = status.get(&id.to_string()) {
-                // from the asset audit: grafted = brought back from an old build; lost = in no build left
-                // (a transparent stand-in instead of a white box)
-                let label = match st.as_str() {
-                    "missing" => "<b>missing</b>".to_string(),
-                    "lost" => "<b>art lost</b>".to_string(),
-                    other => other.to_string(),
-                };
-                return if notes.is_empty() { label } else { format!("<span title=\"{}\">{label}</span>", esc(&notes.join("; "))) };
+                return (st.clone(), notes.join("; "));
             }
             let b = banner(id);
-            if b.is_empty() {
-                "-".into()
+            let st = if b.is_empty() {
+                "none"
             } else if !has_art(cdn, patch, &b) {
-                "<b>missing</b>".into()
+                "missing"
             } else if id >= 10_000 && b.to_lowercase().starts_with("ev") && !has_page(cdn, patch, id) {
-                // main events have their own page (UI_Ev<id>); Star Level Up and the rest use shared pages
-                "<b>no page</b>".into()
+                "no page"
             } else {
-                "yes".into()
-            }
+                "ok"
+            };
+            (st.to_string(), String::new())
         };
         let lottery: std::collections::HashMap<i32, &str> = self
             .tables
@@ -458,8 +449,8 @@ impl Game {
         let mg = &self.tables.minigames;
         let votes: std::collections::HashSet<i32> = mg.votes.iter().flat_map(|v| [v.vote_event, v.rank_event]).collect();
         let finds: std::collections::HashSet<i32> = mg.find_runs.values().flatten().map(|s| s.event).collect();
-        let kind = |id: i32| {
-            let mut k = vec![];
+        let kinds = |id: i32| {
+            let mut k: Vec<&str> = vec![];
             if self.tables.signins.contains_key(&id) {
                 k.push("sign-in");
             }
@@ -478,20 +469,40 @@ impl Game {
             if finds.contains(&id) {
                 k.push("find character");
             }
-            k.join(", ")
+            if banner(id).to_lowercase().starts_with("gacha") || name(id).starts_with("Pick Up") {
+                k.push("summon banner");
+            }
+            k
         };
-        let scheduled: String = events
-            .iter()
-            .map(|(&id, &(s, e))| {
-                let (os, oe) = self.tables.events.get(&id).copied().unwrap_or_default();
-                let state = if now < s { "starts later" } else if now < e { "open" } else { "ended" };
-                format!(
-                    "<tr><td>{id}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{state}</td><td>{} to {}</td><td>{}</td>\
-                     <td><form method=post action=/admin/events><input type=hidden name=remove value={id}><button>Remove</button></form></td></tr>",
-                    name(id), esc(&banner(id)), fmt_time(s), fmt_time(e), fmt_time(os), fmt_time(oe), kind(id)
-                )
+        let row = |id: i32, start: i64, end: i64, scheduled: bool| {
+            let (os, oe) = self.tables.events.get(&id).copied().unwrap_or_default();
+            let (art, art_notes) = art(id);
+            serde_json::json!({
+                "id": id, "name": name(id), "banner": banner(id), "start": start, "end": end, "scheduled": scheduled,
+                "original_start": os, "original_end": oe, "kinds": kinds(id), "art": art, "art_notes": art_notes,
+                "part": self.tables.event_parents.get(&id).is_some_and(|&p| p != id),
+                "newcomer": self.tables.event_days.contains_key(&id),
+                "state": if now < start { "later" } else if end == 0 || now < end { "open" } else { "ended" },
             })
-            .collect();
+        };
+        // the calendar: two weeks back to six weeks ahead
+        let (from, to) = (now - 14 * 86_400, now + 42 * 86_400);
+        let mut window: Vec<serde_json::Value> = vec![];
+        for (&id, &(s, e)) in &events {
+            if e >= from && s <= to {
+                window.push(row(id, s, e, true));
+            }
+        }
+        for (&id, &(s, e)) in &self.tables.events {
+            if events.contains_key(&id) || self.tables.event_days.contains_key(&id) || s <= 0 {
+                continue;
+            }
+            // events with no end (2038) or far ends count as always on
+            if (e >= from || e <= 0) && s <= to {
+                window.push(row(id, s, e, false));
+            }
+        }
+        window.sort_by_key(|v| (v["start"].as_i64().unwrap_or(0), v["id"].as_i64().unwrap_or(0)));
         let mut past: Vec<(i32, i64, i64)> = self
             .tables
             .events
@@ -500,39 +511,8 @@ impl Game {
             .map(|(&id, &(s, e))| (id, s, e))
             .collect();
         past.sort_by(|a, b| b.2.cmp(&a.2).then(a.0.cmp(&b.0)));
-        let past_rows: String = past
-            .iter()
-            .map(|&(id, s, e)| {
-                format!(
-                    "<tr><td>{id}</td><td>{}</td><td>{}</td><td>{}</td><td>{} to {}</td><td class=n>{}</td><td>{}</td><td><form method=post \
-                     action=/admin/events><input type=hidden name=id value={id}><button>Rerun</button></form></td></tr>",
-                    name(id), esc(&banner(id)), art(id), fmt_time(s), fmt_time(e), (e - s + 43_200) / 86_400, kind(id)
-                )
-            })
-            .collect();
-        let msg = if message.is_empty() { String::new() } else { format!("<p class=msg>{}</p>", esc(message)) };
-        format!(
-            "<!doctype html><html><head><meta charset=utf-8><title>Woofia event schedule</title>\
-<style>body{{font:14px system-ui,sans-serif;margin:24px;max-width:1000px}}table{{border-collapse:collapse;width:100%}}\
-td,th{{border-bottom:1px solid #ddd;padding:4px 8px;text-align:left}}td.n{{text-align:right}}.msg{{background:#eef;padding:8px}}</style>\
-</head><body><p><a href=/admin>Back to the admin page</a></p><h1>Event schedule</h1>{msg}\
-<p>Events open by the dates in the client's Event_C table. Scheduled events get new dates: the server rebuilds the \
-client's main_data with them and uses them itself. Players see a change after restarting the game. Times are UTC. A rerun without a date starts now, \
-or at the next 21:00 UTC reset for a sign-in.</p>\
-<h2>Scheduled</h2><table><tr><th>Event</th><th>Name</th><th>Banner</th><th>Start</th><th>End</th><th>Now</th><th>Original dates</th>\
-<th>Server logic</th><th></th></tr>{scheduled}</table>\
-<form method=post action=/admin/events><p>Event id <input name=id size=6> start date <input name=date size=10 \
-placeholder=YYYY-MM-DD> (blank: now; sign-ins at the next 21:00 UTC reset) days <input name=days size=4> (blank: the original length) <button>Schedule</button></p></form>\
-<form method=post action=/admin/events><input type=hidden name=clear value=1><p><button>Clear the schedule</button> \
-(back to the original tables)</p></form>\
-<h2>Past events</h2><p>Server logic lists what the server handles for the event; events without it may only show. \
-Art (from the asset audit, hover for details): ok = still in this client; grafted = brought back from an older \
-build on the CDN (pages, logos, banners, levels); art lost = in no build left, shown as a transparent stand-in \
-instead of a white box; missing = not served at all. Names are read off the banners; parts of an event show its \
-name with (part).</p>\
-<table><tr><th>Event</th><th>Name</th><th>Banner</th><th>Art</th><th>Original dates</th><th>Days</th><th>Server logic</th><th></th></tr>{past_rows}</table>\
-</body></html>"
-        )
+        let past: Vec<serde_json::Value> = past.iter().map(|&(id, s, e)| row(id, s, e, false)).collect();
+        serde_json::json!({ "now": now, "window": window, "past": past })
     }
 }
 

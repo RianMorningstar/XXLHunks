@@ -1,8 +1,8 @@
 # Table extractor
 
 Extracts the game data the server needs from your own copy of the XXL WOOFIA CDN files: the
-client's data tables (raw and decoded to JSON) and the English item and buddy names. No game data is included
-here.
+client's data tables (raw and decoded to JSON), the English item and buddy names, and the avatars and picture the
+server's admin panel shows. No game data is included here.
 
 ## Use
 
@@ -21,12 +21,14 @@ environment, or `--cdn` and `--key`. The output goes where the server looks by d
 | `tables/raw/` | `WOOFIA_RAW_TABLES` |
 | `tables/json/` | `WOOFIA_TABLES` |
 | `tables/items.json` | `WOOFIA_ITEM_NAMES` |
+| `tables/art/` | `WOOFIA_ART` (the admin panel's avatars and sign-in picture; `--no-art` skips them) |
 
 Run it again after a client update.
 
 ## Files
 
 - `extract.py` finds the newest data catalog, decrypts its main_data bundle, writes every table, decodes the ones
-  `schema.json` describes and reads the names from the localization bundles.
+  `schema.json` describes, reads the names from the localization bundles, and saves the avatar icons and the
+  loading picture from the art bundles (listed in the newest art catalog).
 - `schema.json` the field layout of each decoded table (`int`, `bool`, `double`, `float`, `long`, `string`, lists,
   fixed-length arrays and nested structs).

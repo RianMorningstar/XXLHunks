@@ -31,23 +31,29 @@ fn name_char(c: char) -> bool {
 }
 
 impl Game {
+    /// The game's rules for a player name: width, characters, and no word from the illegal names table.
+    pub(crate) fn check_name(&self, name: &str) -> Result<(), String> {
+        let name = name.trim();
+        let width: usize = name.chars().map(|c| if full_width(c) { 2 } else { 1 }).sum();
+        if width == 0 || width > NAME_MAX {
+            return Err(format!("name {name:?} must be 1 to {NAME_MAX} wide (full-width characters count 2)"));
+        }
+        if !name.chars().all(name_char) {
+            return Err(format!("name {name:?} may only have letters, digits, CJK, kana or hangul"));
+        }
+        let lower = name.to_lowercase();
+        if let Some(w) = self.tables.illegal_names.iter().find(|w| lower.contains(w.as_str())) {
+            return Err(format!("name {name:?} has a word that is not allowed ({w:?})"));
+        }
+        Ok(())
+    }
+
     pub(crate) fn set_user_info(&self, acc: &mut Account, req: &[u8]) -> Result<Vec<u8>, String> {
         let r = pb::userinfo::SetUserInfoRequest::decode(req).map_err(|e| e.to_string())?;
         let change = r.one_of_info.ok_or("no profile change in the request")?;
         let mut remaining_item = None;
         if let OneOfInfo::Name(name) = &change {
-            let name = name.trim();
-            let width: usize = name.chars().map(|c| if full_width(c) { 2 } else { 1 }).sum();
-            if width == 0 || width > NAME_MAX {
-                return Err(format!("name {name:?} must be 1 to {NAME_MAX} wide (full-width characters count 2)"));
-            }
-            if !name.chars().all(name_char) {
-                return Err(format!("name {name:?} may only have letters, digits, CJK, kana or hangul"));
-            }
-            let lower = name.to_lowercase();
-            if let Some(w) = self.tables.illegal_names.iter().find(|w| lower.contains(w.as_str())) {
-                return Err(format!("name {name:?} has a word that is not allowed ({w:?})"));
-            }
+            self.check_name(name)?;
             let basic = acc.data.basic.get_or_insert_with(Default::default);
             // only the title screen's first name is free; the in-game rename box always takes the ticket
             let (first, last) = (basic.name.is_empty(), basic.last_rename_unix);
@@ -75,7 +81,7 @@ impl Game {
         let basic = acc.data.basic.get_or_insert_with(Default::default);
         match change {
             OneOfInfo::Name(name) => {
-                println!("    name {:?} -> {:?}", basic.name, name.trim());
+                say!("    name {:?} -> {:?}", basic.name, name.trim());
                 basic.name = name.trim().to_string();
                 basic.last_rename_unix = crate::game::now_secs();
             }
@@ -117,7 +123,7 @@ impl Game {
         let r = pb::userinfo::SetBackgroundRequest::decode(req).map_err(|e| e.to_string())?;
         let b = acc.data.basic.get_or_insert_with(Default::default);
         b.home_background_info = r.home_background_info;
-        println!("    home background: {:?}", b.home_background_info.iter().map(|h| h.id).collect::<Vec<_>>());
+        say!("    home background: {:?}", b.home_background_info.iter().map(|h| h.id).collect::<Vec<_>>());
         Ok(Vec::new())
     }
 
@@ -146,7 +152,7 @@ impl Game {
             }
             w => return Err(format!("no sticker place {w}")),
         }
-        println!("    stickers (place {}): {n}", r.r#where);
+        say!("    stickers (place {}): {n}", r.r#where);
         Ok(pb::userinfo::SetStickersResponse { code: 0 }.encode_to_vec())
     }
 

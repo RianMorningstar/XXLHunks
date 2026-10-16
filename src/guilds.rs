@@ -277,7 +277,7 @@ impl Game {
         g.leader_id = new;
         log(g, LOG_AFK, vec![old, new]);
         store.save(gid);
-        println!("    guild {gid}: leader {old} away {ABSENT_LEADER_DAYS}+ days, {new} leads now");
+        say!("    guild {gid}: leader {old} away {ABSENT_LEADER_DAYS}+ days, {new} leads now");
     }
 
     /// GuildData.MaxMemberCount: GuildLv_C Number of the guild level plus guildwish_C Number of the pool level.
@@ -412,7 +412,7 @@ impl Game {
             g.activity += 50;
             self.guild_exp(g, 50);
             store.save(gid);
-            println!("    guild {gid}: {me} checked in");
+            say!("    guild {gid}: {me} checked in");
         }
         let guild = self.guild_view(&store, gid, me, acc);
         let final_item = signin_reward.iter().map(|i| acc.item(i.id)).collect();
@@ -485,7 +485,7 @@ impl Game {
         file.joined.insert(me, crate::game::game_day(crate::game::now_secs()));
         store.guilds.insert(id, (g, file));
         store.save(id);
-        println!("    guild {id} {name:?} created by {me}");
+        say!("    guild {id} {name:?} created by {me}");
         Ok(pb::guild::GuildNewResponse { code: 0, remaining_item: vec![acc.item(crate::game::GEM), acc.item(2)] }.encode_to_vec())
     }
 
@@ -541,7 +541,7 @@ impl Game {
             }
         }
         store.save(r.guild_id);
-        println!("    {me} {} guild {}", if code == 8 { "joined" } else { "applied to" }, r.guild_id);
+        say!("    {me} {} guild {}", if code == 8 { "joined" } else { "applied to" }, r.guild_id);
         Ok(pb::guild::GuildMemberApplyResponse { code: code as u32, guild_name: name }.encode_to_vec())
     }
 
@@ -663,9 +663,9 @@ impl Game {
         log(g, LOG_LEAVE, vec![me]);
         if g.members.is_empty() {
             store.guilds.remove(&gid);
-            println!("    guild {gid}: {me} left, the guild is closed");
+            say!("    guild {gid}: {me} left, the guild is closed");
         } else {
-            println!("    guild {gid}: {me} left");
+            say!("    guild {gid}: {me} left");
         }
         store.save(gid);
         if let Some(p) = store.players.get_mut(&me) {
@@ -1102,7 +1102,7 @@ impl Game {
         g.activity += points;
         self.guild_exp(g, points);
         store.save(gid);
-        println!("    guild {gid}: {me} gave {give:?} stars to {}'s wish", r.player_id);
+        say!("    guild {gid}: {me} gave {give:?} stars to {}'s wish", r.player_id);
         let mut final_items: Vec<pb::item::Item> = STARS.iter().map(|&id| acc.item(id)).collect();
         final_items.push(acc.item(GUILD_PT));
         Ok(pb::guild::GuildDonateWishResponse {
@@ -1130,7 +1130,7 @@ impl Game {
         acc.add(w.item_id, i64::from(n), &self.tables).map_err(|e| e.to_string())?;
         store.guilds.get_mut(&gid).unwrap().1.wishes.remove(&me);
         store.save(gid);
-        println!("    guild {gid}: {me} received {n} shards of {} from a wish", w.item_id);
+        say!("    guild {gid}: {me} received {n} shards of {} from a wish", w.item_id);
         Ok(pb::guild::GuildReceiveWishResponse {
             code: 1,
             get_items: Some(items(&[(w.item_id, n)])[0].clone()),
@@ -1277,5 +1277,138 @@ impl Game {
         store
             .guild_of(me)
             .map_or(0, |gid| store.guilds[&gid].1.signed.values().filter(|&&d| d == today).count() as i64)
+    }
+}
+
+// ---- the admin page's guild tools (no permissions or tickets: the server runs it) ----
+
+impl Game {
+    /// Take a member out of a guild. A leader leaving hands the guild to a vice leader, else the most active
+    /// member; the last member leaving closes it. Their Escape Energy goes to 0, as when leaving.
+    pub(crate) fn admin_guild_kick(&self, gid: i64, member: i64) -> Result<String, String> {
+        {
+            let mut accounts = self.accounts.lock().unwrap();
+            if let Some(acc) = accounts.get(member) {
+                let energy = self.tables.dungeon.constant("energy_item_id", 29);
+                acc.set_qty(energy, 0, &self.tables);
+                acc.data.guild = None;
+                acc.save();
+            }
+        }
+        let mut store = self.guilds.lock().unwrap();
+        let Some((g, f)) = store.guilds.get_mut(&gid) else { return Err(format!("No guild {gid}.")) };
+        if !g.members.iter().any(|m| m.id == member) {
+            return Err(format!("Account {member} is not in guild {gid}."));
+        }
+        let leader = g.leader_id;
+        g.members.retain(|m| m.id != member);
+        f.wishes.remove(&member);
+        f.joined.remove(&member);
+        let mut msg = format!("Account {member} removed from {}.", g.name);
+        if member == leader {
+            let next = g
+                .members
+                .iter()
+                .max_by_key(|m| (m.title == VICE, m.week_activity, m.activity))
+                .map(|m| m.id);
+            if let Some(next) = next {
+                for m in g.members.iter_mut().filter(|m| m.id == next) {
+                    m.title = LEADER;
+                }
+                g.leader_id = next;
+                log(g, LOG_LEADER, vec![member, next]);
+                msg.push_str(&format!(" Account {next} leads it now."));
+            }
+        }
+        log(g, LOG_REMOVED, vec![g.leader_id, member]);
+        if g.members.is_empty() {
+            store.guilds.remove(&gid);
+            msg.push_str(" It had no one left and is closed.");
+        }
+        store.save(gid);
+        if let Some(p) = store.players.get_mut(&member) {
+            p.left_at = crate::game::now_secs();
+        }
+        store.save_players();
+        Ok(msg)
+    }
+
+    /// Leader, vice leader or member ("leader", "vice", "member").
+    pub(crate) fn admin_guild_role(&self, gid: i64, member: i64, role: &str) -> Result<String, String> {
+        let title = match role {
+            "leader" => LEADER,
+            "vice" => VICE,
+            "member" => MEMBER,
+            _ => return Err(format!("{role:?} is not leader, vice or member.")),
+        };
+        let mut store = self.guilds.lock().unwrap();
+        let Some((g, _)) = store.guilds.get_mut(&gid) else { return Err(format!("No guild {gid}.")) };
+        if !g.members.iter().any(|m| m.id == member) {
+            return Err(format!("Account {member} is not in guild {gid}."));
+        }
+        if title == VICE && g.members.iter().filter(|m| m.title == VICE && m.id != member).count() >= MAX_VICE {
+            return Err(format!("A guild has at most {MAX_VICE} vice leaders."));
+        }
+        if title != LEADER && g.leader_id == member {
+            return Err("Make another member the leader first.".into());
+        }
+        let old = g.leader_id;
+        for m in g.members.iter_mut() {
+            if m.id == member {
+                m.title = title;
+            } else if title == LEADER && m.id == old {
+                m.title = MEMBER;
+            }
+        }
+        if title == LEADER {
+            g.leader_id = member;
+        }
+        let kind = match title {
+            LEADER => LOG_LEADER,
+            VICE => LOG_TO_VICE,
+            _ => LOG_TO_MEMBER,
+        };
+        log(g, kind, vec![old, member]);
+        let name = g.name.clone();
+        store.save(gid);
+        Ok(format!("{name}: account {member} is {role} now."))
+    }
+
+    /// A new guild name (the game's rules; no ticket, no wait).
+    pub(crate) fn admin_guild_rename(&self, gid: i64, name: &str) -> Result<String, String> {
+        let name = name.trim();
+        check_name(name, &self.tables.illegal_names)?;
+        let mut store = self.guilds.lock().unwrap();
+        if store.guilds.values().any(|(g, _)| g.id != gid && g.name.eq_ignore_ascii_case(name)) {
+            return Err(format!("Another guild is called {name}."));
+        }
+        let Some((g, _)) = store.guilds.get_mut(&gid) else { return Err(format!("No guild {gid}.")) };
+        let old = std::mem::replace(&mut g.name, name.to_string());
+        store.save(gid);
+        Ok(format!("Guild {old:?} is now {name:?}."))
+    }
+
+    /// Close a guild: every member leaves (no wait before joining another).
+    pub(crate) fn admin_guild_disband(&self, gid: i64) -> Result<String, String> {
+        let members: Vec<i64> = {
+            let store = self.guilds.lock().unwrap();
+            let Some((g, _)) = store.guilds.get(&gid) else { return Err(format!("No guild {gid}.")) };
+            g.members.iter().map(|m| m.id).collect()
+        };
+        {
+            let mut accounts = self.accounts.lock().unwrap();
+            let energy = self.tables.dungeon.constant("energy_item_id", 29);
+            for &id in &members {
+                if let Some(acc) = accounts.get(id) {
+                    acc.set_qty(energy, 0, &self.tables);
+                    acc.data.guild = None;
+                    acc.save();
+                }
+            }
+        }
+        let mut store = self.guilds.lock().unwrap();
+        let name = store.guilds.remove(&gid).map(|(g, _)| g.name).unwrap_or_default();
+        store.save(gid);
+        Ok(format!("Guild {name:?} closed; its {} member(s) can join another now.", members.len()))
     }
 }

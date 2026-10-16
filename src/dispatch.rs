@@ -231,7 +231,7 @@ impl Game {
         let d = Self::board_of(acc);
         d.dispatch.extend(dealt);
         d.refreshable_num = d.dispatch.iter().filter(|j| j.end_time_unix == 0).count() as i32;
-        println!("    part-time jobs: new board, level {}, {} jobs", d.level, d.dispatch.len());
+        say!("    part-time jobs: new board, level {}, {} jobs", d.level, d.dispatch.len());
     }
 
     /// POST /g/dispatch/start: send buddies on jobs (each buddy on one job at a time).
@@ -263,7 +263,7 @@ impl Game {
         }
         d.refreshable_num = d.dispatch.iter().filter(|j| j.end_time_unix == 0).count() as i32;
         let refreshable_num = d.refreshable_num;
-        println!("    part-time jobs started: {:?}", started.iter().map(|j| (j.id, j.task_id)).collect::<Vec<_>>());
+        say!("    part-time jobs started: {:?}", started.iter().map(|j| (j.id, j.task_id)).collect::<Vec<_>>());
         self.mission_event(acc, 9, 0, started.len() as i64);
         Ok(pb::dispatch::DispatchStartResponse { dispatches: started, refreshable_num }.encode_to_vec())
     }
@@ -380,12 +380,12 @@ impl Game {
             if d.complete_level_mission_count >= b.up_count && self.tables.dispatch.boards.contains_key(&(level + 1)) {
                 d.level += 1;
                 d.complete_level_mission_count = 0;
-                println!("    part-time job board level {}", d.level);
+                say!("    part-time job board level {}", d.level);
             }
         }
         d.refreshable_num = d.dispatch.iter().filter(|j| j.end_time_unix == 0).count() as i32;
         let (level, count, refreshable_num) = (d.level, d.complete_level_mission_count, d.refreshable_num);
-        println!("    part-time jobs claimed {ids:?}: {got:?}");
+        say!("    part-time jobs claimed {ids:?}: {got:?}");
         let mut seen = vec![];
         let final_items = got
             .iter()

@@ -7,6 +7,9 @@
 //! The client reaches it through mitmproxy with redirect.py (which keeps the original Host header), or directly
 //! when its built-in addresses point here.
 
+#[macro_use]
+mod logbuf;
+mod manage;
 mod account;
 mod accounts;
 mod bundle;
@@ -15,6 +18,9 @@ mod dispatch;
 mod fresh;
 mod direct;
 mod admin;
+mod adminapi;
+mod backups;
+mod adminweb;
 mod chars;
 mod dungeon;
 mod events;
@@ -65,6 +71,8 @@ struct App {
     cdn_direct: PathBuf,
     game: Game,
     item_names: HashMap<i32, String>,
+    /// the table extractor's art (avatars, the sign-in picture): WOOFIA_ART
+    art: PathBuf,
     /// <data>\unhandled.log: game calls answered by a capture or an empty 200, once per method and path a run
     unhandled_log: PathBuf,
     unhandled: Mutex<HashSet<String>>,
@@ -86,7 +94,7 @@ fn note_unhandled(app: &App, how: &str, method: &Method, path: &str, query: &str
         body.len(),
         if body.len() > 96 { "..." } else { "" }
     );
-    print!("    UNHANDLED: {line}");
+    say!("    UNHANDLED: {}", line.trim_end());
     use std::io::Write;
     if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(&app.unhandled_log) {
         let _ = f.write_all(line.as_bytes());
@@ -96,10 +104,21 @@ fn note_unhandled(app: &App, how: &str, method: &Method, path: &str, query: &str
 const CDN_HOST: &str = "assets.woofia.playhorny.com";
 const GAME_HOST: &str = "game.woofia.playhorny.com";
 
+/// The settings that came from .env (for the admin page's settings list).
+static DOTENV_KEYS: std::sync::OnceLock<Vec<String>> = std::sync::OnceLock::new();
+
+fn dotenv_keys() -> Vec<String> {
+    DOTENV_KEYS.get().cloned().unwrap_or_default()
+}
+
 /// Settings from a .env file in the working folder (KEY=value lines, # comments, optional quotes). A variable
 /// already set in the environment wins.
 fn load_dotenv() {
-    let Ok(text) = std::fs::read_to_string(".env") else { return };
+    let mut keys = vec![];
+    let Ok(text) = std::fs::read_to_string(".env") else {
+        let _ = DOTENV_KEYS.set(keys);
+        return;
+    };
     for line in text.lines() {
         let line = line.trim();
         let Some((key, value)) = line.split_once('=').filter(|_| !line.starts_with('#')) else { continue };
@@ -108,8 +127,10 @@ fn load_dotenv() {
         if !key.is_empty() && !value.is_empty() && std::env::var_os(key).is_none() {
             // SAFETY: at start, before any other thread runs
             unsafe { std::env::set_var(key, value) };
+            keys.push(key.to_string());
         }
     }
+    let _ = DOTENV_KEYS.set(keys);
 }
 
 fn env_path(name: &str, default: &str) -> PathBuf {
@@ -136,7 +157,7 @@ async fn run() {
         Some(dir) => {
             // captured official replies (research use only): answer calls the server has no logic for
             let r = Replay::load(std::path::Path::new(&dir)).expect("load replay folder");
-            println!("loaded {} captured responses for {} endpoints from {}", r.response_count(), r.endpoint_count(),
+            say!("loaded {} captured responses for {} endpoints from {}", r.response_count(), r.endpoint_count(),
                      PathBuf::from(&dir).display());
             r
         }
@@ -145,18 +166,20 @@ async fn run() {
     let tables = tables::Tables::load(&env_path("WOOFIA_TABLES", "tables/json"), &env_path("WOOFIA_RAW_TABLES", "tables/raw"))
         .expect("load game tables");
     let item_names = admin::load_item_names(&env_path("WOOFIA_ITEM_NAMES", "tables/items.json"));
+    let art = env_path("WOOFIA_ART", "tables/art");
+    adminapi::mark_start();
 
     let accounts = Accounts::open(&data_dir.join("accounts"), fresh::template());
     for (id, name) in accounts.ids() {
-        println!("account {id}: {name}");
+        say!("account {id}: {name}");
     }
     // PlayHorny logins are made on the admin page
     let ph = playhorny::PlayHorny::open(&data_dir);
     if ph.is_empty() {
-        println!("no logins yet: make one on the admin page (http://{addr}/admin)");
+        say!("no logins yet: make one on the admin page (http://{addr}/admin)");
     }
     for (name, l) in ph.names() {
-        println!("login {name}: game account {}", l.game_id);
+        say!("login {name}: game account {}", l.game_id);
     }
     accounts::set_secret(ph.secret());
     let guilds = guilds::GuildStore::open(&data_dir);
@@ -165,20 +188,36 @@ async fn run() {
                       data_dir: data_dir.clone(), social: Mutex::new(social), dungeon_feed: sse::channel(),
                       schedule: Mutex::new(schedule::load(&data_dir)),
                       votes: Mutex::new(minigames::VoteStore::open(&data_dir)),
-                      link_codes: Mutex::new(linkcode::LinkStore::open(&data_dir)) };
+                      link_codes: Mutex::new(linkcode::LinkStore::open(&data_dir)),
+                      bans: Mutex::new(manage::BanStore::open(&data_dir)), active: Mutex::new(HashMap::new()),
+                      mail_queue: Mutex::new(manage::MailQueue::open(&data_dir)) };
     let unhandled_log = data_dir.join("unhandled.log");
     let cdn_patch = data_dir.join("cdn_patch");
     // the scheduled events' main_data and catalog, written again from the mirror (also after a client update)
     let events = game.schedule.lock().unwrap().clone();
     match schedule::rebuild(&cdn, &cdn_patch, &events, &game.scheduled_malls(&events)) {
-        Ok(msg) => println!("event schedule: {msg}"),
-        Err(e) => println!("event schedule: NOT rebuilt: {e}"),
+        Ok(msg) => say!("event schedule: {msg}"),
+        Err(e) => say!("event schedule: NOT rebuilt: {e}"),
     }
     let cdn_direct = data_dir.join("cdn_patch_direct");
-    let app = Arc::new(App { replay, cdn, cdn_patch, cdn_direct, game, item_names, unhandled_log, unhandled: Mutex::new(HashSet::new()) });
+    let app = Arc::new(App { replay, cdn, cdn_patch, cdn_direct, game, item_names, art, unhandled_log, unhandled: Mutex::new(HashSet::new()) });
+    // group mails go out at their time
+    let ticker = app.clone();
+    tokio::spawn(async move {
+        let mut every = tokio::time::interval(std::time::Duration::from_secs(30));
+        loop {
+            every.tick().await;
+            let app = ticker.clone();
+            let _ = tokio::task::spawn_blocking(move || {
+                app.game.mail_tick();
+                backups::tick(&app.game);
+            })
+            .await;
+        }
+    });
     let router = Router::new().fallback(handle).with_state(app);
     let listener = tokio::net::TcpListener::bind(addr).await.expect("bind");
-    println!("listening on http://{addr} (admin page: http://{addr}/admin)");
+    say!("listening on http://{addr} (admin page: http://{addr}/admin)");
     axum::serve(listener, router.into_make_service_with_connect_info::<SocketAddr>()).await.expect("serve");
 }
 
@@ -216,34 +255,28 @@ async fn handle(
     }
 
     if host == "127.0.0.1" || host == "localhost" {
-        if let Some(refused) = admin_refused(&peer, &method, &path, query, &headers) {
-            println!("admin {method} {path} from {peer} -> refused (not this machine, or a form from another site)");
-            return refused;
-        }
-        if path.starts_with("/admin") && query.contains("key=") {
-            // the access key from the address bar becomes a cookie, so the page's own links and forms carry it
-            let mut resp = Response::new(Body::empty());
-            *resp.status_mut() = StatusCode::SEE_OTHER;
-            resp.headers_mut().insert(header::LOCATION, HeaderValue::from_static("/admin"));
-            let cookie = format!("woofia_admin={}; HttpOnly; SameSite=Strict; Path=/", admin_key().unwrap_or_default());
-            if let Ok(v) = HeaderValue::from_str(&cookie) {
-                resp.headers_mut().insert(header::SET_COOKIE, v);
-            }
-            return resp;
-        }
-        return admin_page(&app, &method, &path, query, &body);
+        return adminweb::handle(&app, peer, &method, &path, query, &headers, &body).await;
     }
 
     if host.starts_with("stream.") {
-        println!("{host} {method} {path} -> open event stream");
+        say!("{host} {method} {path} -> open event stream");
         return event_stream();
     }
 
     let auth = headers.get(header::AUTHORIZATION).and_then(|h| h.to_str().ok());
 
     if host == "login.playhorny.com" {
+        if let Some(why) = playhorny_ban(&app.game, &path, auth, &body) {
+            say!("{host} {method} {path} -> refused: {why}");
+            let (code, json) = playhorny::refused(&why);
+            let mut resp = Response::new(Body::from(json));
+            *resp.status_mut() = StatusCode::from_u16(code).unwrap_or(StatusCode::BAD_REQUEST);
+            resp.headers_mut()
+                .insert(header::CONTENT_TYPE, HeaderValue::from_static("application/json; charset=utf-8"));
+            return resp;
+        }
         if let Some((code, json)) = app.game.playhorny.lock().unwrap().handle(method.as_str(), &path, auth, &body) {
-            println!("{host} {method} {path} -> PlayHorny account service ({code})");
+            say!("{host} {method} {path} -> PlayHorny account service ({code})");
             let mut resp = Response::new(Body::from(json));
             *resp.status_mut() = StatusCode::from_u16(code).unwrap_or(StatusCode::OK);
             resp.headers_mut()
@@ -256,7 +289,7 @@ async fn handle(
         let game_id = app.game.playhorny.lock().unwrap().game_id_for(auth);
         if game_id.is_none() && game::is_platform_call(method.as_str(), &path) {
             // an H Coin call without one of our PlayHorny tokens: no balance from the captures
-            println!("{host} {method} {path} -> 401, no valid PlayHorny token");
+            say!("{host} {method} {path} -> 401, no valid PlayHorny token");
             let mut resp = Response::new(Body::from(
                 r#"{"result":{"code":0,"msg":"Please log in again.","http_code":"401"},"data":null}"#,
             ));
@@ -266,7 +299,7 @@ async fn handle(
             return resp;
         }
         if let Some(json) = app.game.platform(method.as_str(), &path, game_id.as_deref()) {
-            println!("{host} {method} {path} -> H Coin balance");
+            say!("{host} {method} {path} -> H Coin balance");
             let mut resp = Response::new(Body::from(json));
             resp.headers_mut()
                 .insert(header::CONTENT_TYPE, HeaderValue::from_static("application/json; charset=utf-8"));
@@ -276,31 +309,31 @@ async fn handle(
 
     if direct && host == CDN_HOST && method == Method::GET {
         if path == "/config/cdn.json" {
-            println!("{raw_host} {method} {path} -> cdn.json: this server");
+            say!("{raw_host} {method} {path} -> cdn.json: this server");
             let mut resp = Response::new(Body::from(direct::cdn_json(&base)));
             resp.headers_mut().insert(header::CONTENT_TYPE, HeaderValue::from_static("application/json"));
             return resp;
         }
         if let Some(resp) = cdn_file(&app.cdn_direct, &path).await {
-            println!("{raw_host} {method} {path} -> patched client file (data\\cdn_patch_direct)");
+            say!("{raw_host} {method} {path} -> patched client file (data\\cdn_patch_direct)");
             return resp;
         }
     }
     // the platform calls the SDK and the game's proxy handler make (any of the proxy hosts)
     if method == Method::GET && path.trim_end_matches('/') == "/v1/domain-proxy" {
         let Some(list) = direct::domain_proxy(query, direct.then_some(base.as_str())) else {
-            println!("{raw_host} {method} {path} -> 404 (no WOOFIA_SDK_KEY: the SDK keeps its own hosts)");
+            say!("{raw_host} {method} {path} -> 404 (no WOOFIA_SDK_KEY: the SDK keeps its own hosts)");
             return status(StatusCode::NOT_FOUND);
         };
-        println!("{raw_host} {method} {path} -> domain list{}", if direct { ": this server" } else { "" });
+        say!("{raw_host} {method} {path} -> domain list{}", if direct { ": this server" } else { "" });
         return json(list);
     }
     if method == Method::GET && host == "login.playhorny.com" && path.starts_with("/v1/accounts/functions/games/") {
-        println!("{host} {method} {path} -> SDK switches");
+        say!("{host} {method} {path} -> SDK switches");
         return json(direct::sdk_functions());
     }
     if method == Method::GET && path == "/v1/gamedata/news/publish-time" {
-        println!("{host} {method} {path} -> news time");
+        say!("{host} {method} {path} -> news time");
         return json(direct::news_publish_time());
     }
 
@@ -313,12 +346,12 @@ async fn handle(
             };
             if let Some(b) = file.and_then(|b| sse::rewrite_config(&b)) {
                 let b = if direct { direct::rewrite_config(&b, &base).unwrap_or(b) } else { b };
-                println!("{host} {method} {path} -> client config, addresses -> {}", if direct { base.clone() } else { sse::base_url() });
+                say!("{host} {method} {path} -> client config, addresses -> {}", if direct { base.clone() } else { sse::base_url() });
                 return json(b);
             }
         }
         if let Some(resp) = cdn_file(&app.cdn_patch, &path).await {
-            println!("{host} {method} {path} -> patched file (data\\cdn_patch)");
+            say!("{host} {method} {path} -> patched file (data\\cdn_patch)");
             return resp;
         }
     }
@@ -333,18 +366,18 @@ async fn handle(
         if let Some(reply) = app.game.handle(method.as_str(), &path, query, &body, template, bearer) {
             return sourced("logic", match reply {
                 Reply::Proto(bytes) => {
-                    println!("{host} {method} {path} -> game logic ({} bytes)", bytes.len());
+                    say!("{host} {method} {path} -> game logic ({} bytes)", bytes.len());
                     proto(bytes)
                 }
                 Reply::Unauthorized => {
-                    println!("{host} {method} {path} -> 401, log in again");
+                    say!("{host} {method} {path} -> 401, log in again");
                     let body = pb::login::UnauthorizedResponse { message: "Please log in again.".into() };
                     let mut resp = proto(body.encode_to_vec());
                     *resp.status_mut() = StatusCode::UNAUTHORIZED;
                     resp
                 }
                 Reply::Refused(code, why) => {
-                    println!("{host} {method} {path} -> REFUSED {code}: {why}");
+                    say!("{host} {method} {path} -> REFUSED {code}: {why}");
                     status(StatusCode::from_u16(code).unwrap_or(StatusCode::BAD_REQUEST))
                 }
             });
@@ -352,7 +385,7 @@ async fn handle(
     }
 
     if let Some(hit) = hit {
-        println!("{host} {method} {path} -> replay {} ({})", hit.file, hit.how);
+        say!("{host} {method} {path} -> replay {} ({})", hit.file, hit.how);
         if host == GAME_HOST && path.starts_with("/g/") {
             note_unhandled(&app, "replay", &method, &path, query, &body);
         }
@@ -374,233 +407,47 @@ async fn handle(
             if let Some(text) = text {
                 use sha2::Digest;
                 let hash: String = sha2::Sha256::digest(&text)[..16].iter().map(|b| format!("{b:02x}")).collect();
-                println!("{host} {method} {path} -> catalog hash from its .json");
+                say!("{host} {method} {path} -> catalog hash from its .json");
                 let mut resp = Response::new(Body::from(hash));
                 resp.headers_mut().insert(header::CONTENT_TYPE, HeaderValue::from_static("text/plain"));
                 return resp;
             }
         }
-        println!("{host} {method} {path} -> 404 (not in CDN mirror)");
+        say!("{host} {method} {path} -> 404 (not in CDN mirror)");
         return status(StatusCode::NOT_FOUND);
     }
 
     if host != GAME_HOST {
-        println!("{host} {method} {path}?{query} -> 404 (not this server's)");
+        say!("{host} {method} {path}?{query} -> 404 (not this server's)");
         return status(StatusCode::NOT_FOUND);
     }
-    println!("{host} {method} {path}?{query} -> MISS ({} byte body), empty 200", body.len());
+    say!("{host} {method} {path}?{query} -> MISS ({} byte body), empty 200", body.len());
     if path.starts_with("/g/") {
         note_unhandled(&app, "miss", &method, &path, query, &body);
     }
     sourced("miss", proto(Vec::new()))
 }
 
+/// Why a PlayHorny login or session call is refused: the game account it plays is suspended or banned.
+fn playhorny_ban(game: &Game, path: &str, auth: Option<&str>, body: &[u8]) -> Option<String> {
+    let game_id = match path {
+        "/v1/users/login" => {
+            let req: serde_json::Value = serde_json::from_slice(body).ok()?;
+            let name = req.get("account")?.as_str()?.trim().to_lowercase();
+            game.playhorny.lock().unwrap().login(&name)?.game_id
+        }
+        "/v1/users/game-id/bind" | "/v1/users/refresh/token" | "/v1/accounts/game" | "/v1/users/info" => {
+            game.playhorny.lock().unwrap().game_id_for(auth)?
+        }
+        _ => return None,
+    };
+    let id = game.accounts.lock().unwrap().id_of(&format!("{game_id}@horny"))?;
+    game.ban_message(id)
+}
+
 /// Where a reply came from, for tests: the server's logic, a capture, or nothing.
 fn sourced(source: &'static str, mut resp: Response) -> Response {
     resp.headers_mut().insert("x-woofia-source", HeaderValue::from_static(source));
-    resp
-}
-
-/// WOOFIA_ADMIN_KEY: lets the admin page be used from other machines (with the key).
-fn admin_key() -> Option<String> {
-    std::env::var("WOOFIA_ADMIN_KEY").ok().filter(|k| k.len() >= 16)
-}
-
-/// Why an admin request is refused, if it is. The page is for this machine: a connection from elsewhere needs the
-/// access key (?key= once, then its cookie), and a form sent from another site's page (its Origin) is refused.
-fn admin_refused(peer: &SocketAddr, method: &Method, path: &str, query: &str, headers: &HeaderMap) -> Option<Response> {
-    if !peer.ip().is_loopback() {
-        let key = admin_key()?;
-        let cookie = headers.get(header::COOKIE).and_then(|h| h.to_str().ok()).unwrap_or("");
-        let given = cookie.split(';').any(|c| c.trim() == format!("woofia_admin={key}"))
-            || (path.starts_with("/admin") && admin::field(query, "key").as_deref() == Some(key.as_str()));
-        if !given {
-            return Some(status(StatusCode::FORBIDDEN));
-        }
-    }
-    if *method != Method::GET {
-        let host = headers.get(header::HOST).and_then(|h| h.to_str().ok()).unwrap_or("");
-        if let Some(origin) = headers.get(header::ORIGIN).and_then(|h| h.to_str().ok()) {
-            let same = origin.strip_prefix("http://").or_else(|| origin.strip_prefix("https://")) == Some(host);
-            if !same {
-                return Some(status(StatusCode::FORBIDDEN));
-            }
-        }
-    }
-    None
-}
-
-fn admin_page(app: &App, method: &Method, path: &str, query: &str, body: &[u8]) -> Response {
-    let form = percent_encoding::percent_decode(body).decode_utf8_lossy().replace('+', " ");
-    let account = admin::field(query, "account").or_else(|| admin::field(&form, "account")).and_then(|v| v.parse().ok());
-    // a session token for an account, as plain text: test scripts act as a second player with it (no password)
-    if method == Method::POST && path == "/admin/token" {
-        let known = account.is_some_and(|id| app.game.accounts.lock().unwrap().get(id).is_some());
-        let Some(id) = account.filter(|_| known) else { return status(StatusCode::NOT_FOUND) };
-        println!("admin: session token issued for account {id}");
-        return Response::new(Body::from(accounts::Accounts::session_token(id).0));
-    }
-    let message = match (method.as_str(), path) {
-        ("GET", "/admin") | ("GET", "/") => String::new(),
-        ("GET", "/admin/events") | ("POST", "/admin/events") => {
-            let msg = if method == Method::POST { app.game.schedule_change(&app.cdn, &app.cdn_patch, &form) } else { String::new() };
-            if !msg.is_empty() {
-                println!("admin: {msg}");
-            }
-            let mut resp = Response::new(Body::from(app.game.schedule_page(&app.cdn, &app.cdn_patch, &msg)));
-            resp.headers_mut().insert(header::CONTENT_TYPE, HeaderValue::from_static("text/html; charset=utf-8"));
-            return resp;
-        }
-        ("POST", "/admin/item") => {
-            let msg = admin::set_item(&app.game, account, &form);
-            println!("admin: {msg}");
-            msg
-        }
-        ("POST", "/admin/bind") => {
-            let msg = admin::bind(&app.game, &form);
-            println!("admin: {msg}");
-            msg
-        }
-        ("POST", "/admin/login") => {
-            let name = admin::field(&form, "name").unwrap_or_default();
-            let password = admin::field(&form, "password").unwrap_or_default();
-            let game_id = admin::field(&form, "game_id").filter(|g| !g.is_empty());
-            let msg = match app.game.playhorny.lock().unwrap().set_login(&name, &password, game_id.as_deref()) {
-                Ok(()) => format!("Login {name} saved."),
-                Err(e) => e,
-            };
-            println!("admin: {}", if msg.starts_with("Login") { msg.clone() } else { format!("login not saved: {msg}") });
-            msg
-        }
-        ("POST", "/admin/mail") => {
-            let msg = admin::send_mail(&app.game, account, &form);
-            println!("admin: {msg}");
-            msg
-        }
-        ("POST", "/admin/newcomer-earlier") => {
-            let msg = admin::newcomer_earlier(&app.game, account, &form);
-            println!("admin: {msg}");
-            msg
-        }
-        ("POST", "/admin/notice") => {
-            let msg = admin::send_notice(&app.game, account, &form);
-            println!("admin: {msg}");
-            msg
-        }
-        ("POST", "/admin/maxout") => {
-            let msg = admin::max_out(&app.game, account, &form);
-            println!("admin: {msg}");
-            msg
-        }
-        ("POST", "/admin/bond") => {
-            let msg = admin::set_bond(&app.game, account, &form);
-            println!("admin: {msg}");
-            msg
-        }
-        ("POST", "/admin/chapter-reset") => {
-            let msg = admin::reset_chapter(&app.game, account, &form);
-            println!("admin: {msg}");
-            msg
-        }
-        ("POST", "/admin/fresh") => {
-            let msg = admin::fresh(&app.game, account);
-            println!("admin: {msg}");
-            msg
-        }
-        ("POST", "/admin/newcomer") => {
-            let msg = admin::newcomer_events(&app.game, account);
-            println!("admin: {msg}");
-            msg
-        }
-        ("POST", "/admin/story") => {
-            let msg = admin::clear_story(&app.game, account, &form);
-            println!("admin: {msg}");
-            msg
-        }
-        ("POST", "/admin/unfinished") => {
-            let msg = admin::clear_unfinished(&app.game, account);
-            println!("admin: {msg}");
-            msg
-        }
-        ("POST", "/admin/char") => {
-            let msg = admin::give_char(&app.game, account, &form);
-            println!("admin: {msg}");
-            msg
-        }
-        ("POST", "/admin/level") => {
-            let msg = admin::set_level(&app.game, account, &form);
-            println!("admin: {msg}");
-            msg
-        }
-        ("POST", "/admin/bbq-finish") => {
-            let msg = admin::bbq_finish(&app.game, account);
-            println!("admin: {msg}");
-            msg
-        }
-        ("POST", "/admin/dispatch-finish") => {
-            let msg = admin::dispatch_finish(&app.game, account);
-            println!("admin: {msg}");
-            msg
-        }
-        ("POST", "/admin/all-summons") => {
-            let msg = admin::all_summons(&app.game, account);
-            println!("admin: {msg}");
-            msg
-        }
-        ("POST", "/admin/rejoin-now") => {
-            let msg = admin::rejoin_now(&app.game, account);
-            println!("admin: {msg}");
-            msg
-        }
-        ("POST", "/admin/leader-away") => {
-            let msg = admin::leader_away(&app.game, account);
-            println!("admin: {msg}");
-            msg
-        }
-        ("POST", "/admin/escape-end") => {
-            let msg = admin::escape_end(&app.game, account, &form);
-            println!("admin: {msg}");
-            msg
-        }
-        ("POST", "/admin/escape-keys") => {
-            let msg = admin::give_keys(&app.game, account, &form);
-            println!("admin: {msg}");
-            msg
-        }
-        ("POST", "/admin/outfits-reset") => {
-            let msg = admin::reset_outfits(&app.game, account);
-            println!("admin: {msg}");
-            msg
-        }
-        ("POST", "/admin/rename-reset") => {
-            let msg = admin::reset_rename(&app.game, account);
-            println!("admin: {msg}");
-            msg
-        }
-        ("POST", "/admin/packs-period-end") => {
-            let msg = admin::end_pack_periods(&app.game, account, &form);
-            println!("admin: {msg}");
-            msg
-        }
-        ("POST", "/admin/clock") => match admin::test_clock(&form) {
-            Some(msg) => {
-                println!("admin: {msg}");
-                msg
-            }
-            None => return status(StatusCode::NOT_FOUND),
-        },
-        ("POST", "/admin/hcoin") => {
-            let msg = admin::set_hcoin(&app.game, account, &form);
-            println!("admin: {msg}");
-            msg
-        }
-        _ => return status(StatusCode::NOT_FOUND),
-    };
-    let logins = app.game.playhorny.lock().unwrap().names();
-    let mut resp =
-        Response::new(Body::from(admin::page(&app.game, &app.item_names, &logins, account, &message)));
-    resp.headers_mut()
-        .insert(header::CONTENT_TYPE, HeaderValue::from_static("text/html; charset=utf-8"));
     resp
 }
 
@@ -647,6 +494,8 @@ async fn cdn_file(root: &std::path::Path, path: &str) -> Option<Response> {
     let ctype = match full.extension().and_then(|e| e.to_str()) {
         Some("json") => "application/json",
         Some("hash") | Some("info") | Some("txt") => "text/plain",
+        Some("png") => "image/png",
+        Some("jpg") | Some("jpeg") => "image/jpeg",
         _ => "application/octet-stream",
     };
     let mut resp = Response::new(Body::from(data));
@@ -658,15 +507,15 @@ async fn cdn_file(root: &std::path::Path, path: &str) -> Option<Response> {
 fn dungeon_stream(app: &App, headers: &HeaderMap, floor: &str) -> Response {
     let token = headers.get(header::AUTHORIZATION).and_then(|h| h.to_str().ok()).map(|h| h.trim_start_matches("Bearer ").trim());
     let Some(me) = token.and_then(accounts::token_account) else {
-        println!("sse /sse/guild/dungeon/{floor} -> 401, no valid token");
+        say!("sse /sse/guild/dungeon/{floor} -> 401, no valid token");
         return status(StatusCode::UNAUTHORIZED);
     };
     let Ok(floor) = floor.trim_matches('/').parse::<i32>() else { return status(StatusCode::NOT_FOUND) };
     let Some(guild) = app.game.guilds.lock().unwrap().guild_of(me) else {
-        println!("sse /sse/guild/dungeon/{floor} -> 403, account {me} is not in a guild");
+        say!("sse /sse/guild/dungeon/{floor} -> 403, account {me} is not in a guild");
         return status(StatusCode::FORBIDDEN);
     };
-    println!("sse /sse/guild/dungeon/{floor} -> live updates for account {me} (guild {guild})");
+    say!("sse /sse/guild/dungeon/{floor} -> live updates for account {me} (guild {guild})");
     sse::stream(app.game.dungeon_feed.subscribe(), guild, floor)
 }
 

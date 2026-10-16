@@ -291,7 +291,7 @@ impl Game {
         Self::char_mut(acc, i).lv = target;
         // the tutorial's level-up step: the client saves it only locally and expects the server to
         crate::game::guide_done(acc, r.guide_idx);
-        println!("    character {} level {lv} -> {target} for {exp} EXP and {gold} gold", r.id);
+        say!("    character {} level {lv} -> {target} for {exp} EXP and {gold} gold", r.id);
         let resp = pb::character::EnhanceResponse { lv: target, last_items: vec![acc.item(CHAR_EXP), acc.item(GOLD)] };
         Ok(resp.encode_to_vec())
     }
@@ -309,7 +309,7 @@ impl Game {
         let paid = self.pay(acc, row.cost.iter().map(|&(id, n)| (id, i64::from(n))).collect())?;
         Self::char_mut(acc, i).lv_break = next;
         self.feed(acc, crate::social::FeedRec { kind: crate::social::FEED_BREAK_LEVEL, character: r.char_id, break_level: next, ..Default::default() });
-        println!("    character {} limit break {next} (cap {}) for {:?}", r.char_id, row.cap, row.cost);
+        say!("    character {} limit break {next} (cap {}) for {:?}", r.char_id, row.cap, row.cost);
         let resp = pb::character::LvBreakResponse { lv_break: next, last_items: paid.iter().map(|&id| acc.item(id)).collect() };
         Ok(resp.encode_to_vec())
     }
@@ -365,7 +365,7 @@ impl Game {
         if star_after > star_before {
             self.feed(acc, crate::social::FeedRec { kind: crate::social::FEED_STAR_UP, character: r.id, star: star_after, ..Default::default() });
         }
-        println!("    character {} rank {rank} -> {} for {shards} shards", r.id, r.target_rank);
+        say!("    character {} rank {rank} -> {} for {shards} shards", r.id, r.target_rank);
         let resp = pb::character::RankUpResponse {
             rank: r.target_rank,
             last_items: paid.iter().map(|&id| acc.item(id)).collect(),
@@ -400,7 +400,7 @@ impl Game {
             .ok_or(format!("skill {} of character {} is at its highest level", r.skill_index, r.char_id))?;
         let paid = self.pay(acc, cost.iter().map(|&(id, n)| (id, i64::from(n))).collect())?;
         Self::char_mut(acc, i).skill_lv[r.skill_index as usize] = lv + 1;
-        println!("    character {} skill {} level {lv} -> {} for {cost:?}", r.char_id, r.skill_index, lv + 1);
+        say!("    character {} skill {} level {lv} -> {} for {cost:?}", r.char_id, r.skill_index, lv + 1);
         let resp = pb::character::EnhanceResponse { lv: lv + 1, last_items: paid.iter().map(|&id| acc.item(id)).collect() };
         Ok(resp.encode_to_vec())
     }
@@ -434,7 +434,7 @@ impl Game {
         for &(id, n) in &back {
             acc.add(id, n, &self.tables).map_err(|e| e.to_string())?;
         }
-        println!("    character {} reset from level {lv} (limit break {lv_break}) for 1 of {RESET_LV_ITEM}, back {back:?}", r.char_id);
+        say!("    character {} reset from level {lv} (limit break {lv_break}) for 1 of {RESET_LV_ITEM}, back {back:?}", r.char_id);
         let mut last_items: Vec<pb::item::Item> = back.iter().map(|&(id, _)| acc.item(id)).collect();
         last_items.push(acc.item(RESET_LV_ITEM));
         let resp = pb::character::ResetLvResponse { return_items: back.iter().map(|&(id, n)| item(id, n)).collect(), last_items };
@@ -461,7 +461,7 @@ impl Game {
         for &(id, n) in &back {
             acc.add(id, n, &self.tables).map_err(|e| e.to_string())?;
         }
-        println!("    character {} skill {} reset from level {lv} for 1 of {RESET_SKILL_ITEM}, back {back:?}", r.char_id, r.skill_index);
+        say!("    character {} skill {} reset from level {lv} for 1 of {RESET_SKILL_ITEM}, back {back:?}", r.char_id, r.skill_index);
         let mut last_items: Vec<pb::item::Item> = back.iter().map(|&(id, _)| acc.item(id)).collect();
         last_items.push(acc.item(RESET_SKILL_ITEM));
         let resp = pb::character::ResetSkillResponse { return_items: back.iter().map(|&(id, n)| item(id, n)).collect(), last_items };
@@ -483,7 +483,7 @@ impl Game {
             } else {
                 c.flag &= !PIN_FLAG;
             }
-            println!("    character {} {}", f.char_id, if f.favorite { "pinned" } else { "unpinned" });
+            say!("    character {} {}", f.char_id, if f.favorite { "pinned" } else { "unpinned" });
         }
         Ok(Vec::new())
     }
@@ -516,7 +516,7 @@ impl Game {
         let gems = self.tables.constant(&key, 5.0) as i32;
         acc.add(GEMS, i64::from(gems), &self.tables).map_err(|e| e.to_string())?;
         Self::char_mut(acc, i).flag &= !bit;
-        println!("    character {} reward {}: {gems} gems", r.char_id, r.flag);
+        say!("    character {} reward {}: {gems} gems", r.char_id, r.flag);
         let resp = pb::character::CollectRewardResponse {
             rewards: vec![pb::item::Item { id: GEMS, set: vec![pb::model::TlQty { qty: gems, unix: 0 }] }],
             last_items: vec![acc.item(GEMS)],
@@ -547,7 +547,7 @@ impl Game {
             [_, _, id, n] => vec![pb::item::Item { id: *id, set: vec![pb::model::TlQty { qty: *n, unix: 0 }] }],
             _ => vec![],
         };
-        println!("    crate {} -> character {} {:?}", used.id, r.character, got.param);
+        say!("    crate {} -> character {} {:?}", used.id, r.character, got.param);
         let mut items = vec![acc.item(used.id)];
         items.extend(reward.iter().map(|it| acc.item(it.id)));
         let resp = pb::item::ConsumeCharItemResponse { character: r.character, items, reward };
@@ -587,7 +587,7 @@ impl Game {
         }
         for c in acc.data.char_bag.iter_mut().flat_map(|b| b.chars.iter_mut()) {
             if let Some(new) = found.remove(&c.id) {
-                println!("    character {} outfits unlocked: {new:?}", c.id);
+                say!("    character {} outfits unlocked: {new:?}", c.id);
                 c.skins.extend(new);
             }
             // kept in order with the default outfit first, as the client lists them
@@ -608,7 +608,7 @@ impl Game {
             return Err(format!("character {} has not unlocked outfit {}", r.id, r.skin));
         }
         c.skin = r.skin;
-        println!("    character {} wears outfit {}", r.id, r.skin);
+        say!("    character {} wears outfit {}", r.id, r.skin);
         Ok(vec![])
     }
 
@@ -674,7 +674,7 @@ impl Game {
         let rune = Self::char_mut(acc, i).rune.get_or_insert_with(Default::default);
         rune.unlock = true;
         rune.bonus.get_or_insert_with(Default::default);
-        println!("    character {} sigil unlocked", r.char_id);
+        say!("    character {} sigil unlocked", r.char_id);
         Ok(pb::character::RuneUnlockResponse { last_items: vec![acc.item(SIGIL_KEY)] }.encode_to_vec())
     }
 
@@ -727,7 +727,7 @@ impl Game {
             x.improve_count += 1;
         }
         let (normal_count, advanced_count) = (x.improve_count, x.adv_improve_count);
-        println!(
+        say!(
             "    character {} sigil {} improve -> HP {} ATK {} (cap {}, rank {sigil_rank})",
             r.char_id,
             if r.advanced { "advanced" } else { "normal" },
@@ -782,7 +782,7 @@ impl Game {
             }
         }
         let bonus = x.bonus.unwrap_or_default();
-        println!(
+        say!(
             "    character {} sigil {} -> HP {} ATK {}",
             r.char_id,
             if r.apply { "applied" } else { "kept as it was" },
@@ -886,7 +886,7 @@ impl Game {
         let c = Self::char_mut(acc, i);
         c.skins.push(outfit);
         c.skins.sort_unstable();
-        println!("    character {role} outfit {outfit} unlocked with item {item_id}");
+        say!("    character {role} outfit {outfit} unlocked with item {item_id}");
         Ok(pb::item::ConsumeItemResponse { items: vec![acc.item(item_id)], reward: vec![] }.encode_to_vec())
     }
 }

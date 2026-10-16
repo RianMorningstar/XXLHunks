@@ -36,7 +36,16 @@ pub struct Game {
     pub votes: Mutex<crate::minigames::VoteStore>,
     /// link codes for moving an account to another device (linkcode.rs)
     pub link_codes: Mutex<crate::linkcode::LinkStore>,
+    /// suspended and banned accounts (manage.rs)
+    pub bans: Mutex<crate::manage::BanStore>,
+    /// account -> (last game call, part of the game): who is playing now (manage.rs)
+    pub active: Mutex<std::collections::HashMap<i64, (i64, &'static str)>>,
+    /// mail to many players, sent and waiting (manage.rs)
+    pub mail_queue: Mutex<crate::manage::MailQueue>,
 }
+
+/// AccResponse res_code for an account that may not play (any code above 0 is an error to the client).
+pub const BANNED_RES_CODE: u32 = 403;
 
 pub enum Reply {
     /// protobuf body
@@ -68,8 +77,11 @@ impl Game {
             // the client renews its session token within 6 hours of its expiry (RefreshResponse)
             ("GET", "/auth/refresh_token") => {
                 let Some(id) = bearer.and_then(token_account) else { return Some(Reply::Unauthorized) };
+                if self.ban_message(id).is_some() {
+                    return Some(Reply::Unauthorized);
+                }
                 let (token, expire) = Accounts::session_token(id);
-                println!("    account {id}: session token renewed");
+                say!("    account {id}: session token renewed");
                 return Some(Reply::Proto(pb::login::RefreshResponse { expire, token }.encode_to_vec()));
             }
             _ => {}
@@ -78,9 +90,14 @@ impl Game {
             return None;
         }
         let Some(id) = bearer.and_then(token_account) else {
-            println!("    no valid server token on this call");
+            say!("    no valid server token on this call");
             return Some(Reply::Unauthorized);
         };
+        if let Some(why) = self.ban_message(id) {
+            say!("    account {id}: {why}");
+            return Some(Reply::Unauthorized);
+        }
+        self.seen(id, path);
         self.dungeon_settle_all(&mut accounts);
         // another player's profile page reads their save, so it runs before this account is borrowed
         if method == "GET" && path.starts_with("/g/userinfo/detail/") {
@@ -295,11 +312,16 @@ impl Game {
         };
         let game_id = self.playhorny.lock().unwrap().game_id_for(Some(&r.token));
         if game_id.as_deref() != Some(r.accname.trim_end_matches("@horny")) {
-            println!("    {} refused: the PlayHorny token is not for this account", r.accname);
+            say!("    {} refused: the PlayHorny token is not for this account", r.accname);
             return Reply::Unauthorized;
         }
         let new = !accounts.exists(&r.accname);
         match accounts.by_name(&r.accname) {
+            Ok(id) if self.ban_message(id).is_some() => {
+                // the client shows "Connection error detected" with the code; the login screen said why
+                say!("    {} is account {id}: refused, {}", r.accname, self.ban_message(id).unwrap_or_default());
+                Reply::Proto(pb::login::AccResponse { res_code: BANNED_RES_CODE, ..Default::default() }.encode_to_vec())
+            }
             Ok(id) => {
                 if new {
                     if let Some(acc) = accounts.get(id) {
@@ -307,7 +329,7 @@ impl Game {
                         acc.save();
                     }
                 }
-                println!("    {} is account {id}", r.accname);
+                say!("    {} is account {id}", r.accname);
                 let resp = pb::login::AccResponse { res_code: 0, id, login_token: Accounts::login_token(id) };
                 Reply::Proto(resp.encode_to_vec())
             }
@@ -322,6 +344,10 @@ impl Game {
             Err(e) => return Reply::Refused(400, e.to_string()),
         };
         let Some(id) = token_account(&r.login_token) else { return Reply::Unauthorized };
+        if let Some(why) = self.ban_message(id) {
+            say!("    account {id}: {why}");
+            return Reply::Unauthorized;
+        }
         let Some(acc) = accounts.get(id) else { return Reply::Refused(401, format!("no account {id}")) };
         if let Some(b) = acc.data.basic.as_mut() {
             b.last_login = now_secs();
@@ -330,7 +356,7 @@ impl Game {
         let (token, expire) = Accounts::session_token(id);
         // a device code (the client only keeps it, GData.mDeviceCode); the official one was 20 characters
         let dcode = new_sn()[..20].to_string();
-        println!("    account {id} logged in");
+        say!("    account {id} logged in");
         Reply::Proto(pb::login::GameLoginResponse { dcode, expire, token }.encode_to_vec())
     }
 
@@ -390,7 +416,7 @@ impl Game {
                 p.quantity -= qty;
             }
         }
-        println!("    store {} product {}: {amount} x item {} for {cost} of item {}", r.store_id, r.product_id,
+        say!("    store {} product {}: {amount} x item {} for {cost} of item {}", r.store_id, r.product_id,
                  goods.item_id, goods.money);
         let (final_items, goods_lists) = if store_crate {
             let mut ids: Vec<i32> = vec![];
@@ -448,7 +474,7 @@ impl Game {
             .map(|g| pb::item::Item { id: g.item_id, set: vec![pb::model::TlQty { qty: g.item_amt, unix: 0 }] })
             .collect();
         let sn = send_mail(acc, r.product_id, self.open_boxes(rewards));
-        println!("    mall product {} (merch {}) for {} of item {}, mailed as {sn}", r.product_id, p.merch_id, p.price,
+        say!("    mall product {} (merch {}) for {} of item {}, mailed as {sn}", r.product_id, p.merch_id, p.price,
                  p.currency);
         let resp = pb::mall::InGamePurchaseResponse {
             remaining_coin: if p.price > 0 { vec![acc.item(p.currency)] } else { vec![] },
@@ -582,7 +608,7 @@ impl Game {
                 None => save.gacha_guarantee_recs.push(gr),
             }
         }
-        println!("    gacha {} x{times} ({results} results) for {}: {}", r.id,
+        say!("    gacha {} x{times} ({results} results) for {}: {}", r.id,
                  if spent.is_empty() { "free".to_string() } else { spent },
                  rewards.iter().map(|c: &pb::model::CommonReward| c.param.first().copied().unwrap_or(0).to_string())
                      .collect::<Vec<_>>().join(" "));
@@ -612,7 +638,7 @@ impl Game {
         let cost = count * i64::from(p.dia_price);
         acc.add(GEM, -cost, &self.tables).map_err(|e| e.to_string())?;
         acc.add(p.ticket_id, count * i64::from(p.ticket_amt.max(1)), &self.tables).map_err(|e| e.to_string())?;
-        println!("    bought {count} x item {} for {cost} gems", p.ticket_id);
+        say!("    bought {count} x item {} for {cost} gems", p.ticket_id);
         // the client applies `last` only
         let resp = pb::gacha::GachaBuyTicketResponse { ticket: Some(acc.item(p.ticket_id)), last: vec![acc.item(GEM), acc.item(p.ticket_id)] };
         Ok(resp.encode_to_vec())
@@ -645,7 +671,7 @@ impl Game {
             Some(x) => x.exchanged = true,
             None => save.gacha_recs.push(pb::gacha::GachaRec { id: r.id, exchanged: true, ..rec }),
         }
-        println!("    gacha {} pick: {pick} -> {:?}", r.id, reward.param);
+        say!("    gacha {} pick: {pick} -> {:?}", r.id, reward.param);
         Ok(pb::gacha::GachaExchangeResponse { reward: Some(reward) }.encode_to_vec())
     }
 
@@ -669,7 +695,7 @@ impl Game {
             Some(x) => x.wish_list = Some(w.clone()),
             None => save.gacha_recs.push(pb::gacha::GachaRec { id, wish_list: Some(w.clone()), ..Default::default() }),
         }
-        println!("    gacha {id} wish list: {:?}", w.contents_id);
+        say!("    gacha {id} wish list: {:?}", w.contents_id);
         Ok(vec![])
     }
 
@@ -698,7 +724,7 @@ impl Game {
                 changed.push(*id);
             }
         }
-        println!("    opened {n} x box {} -> {lists:?}", used.id);
+        say!("    opened {n} x box {} -> {lists:?}", used.id);
         let as_list = |l: &Vec<(i32, i32)>| pb::item::ItemList {
             items: l.iter().map(|(id, q)| pb::item::Item { id: *id, set: vec![pb::model::TlQty { qty: *q, unix: 0 }] }).collect(),
         };
@@ -823,7 +849,7 @@ impl Game {
             format!("mailed as {sn}")
         };
         let transaction_id = if r.transaction_id.is_empty() { new_sn() } else { r.transaction_id.clone() };
-        println!("    cash product {} (merch {}) for {price} H Coin, {} left, {what}", r.product_id, p.merch_id,
+        say!("    cash product {} (merch {}) for {price} H Coin, {} left, {what}", r.product_id, p.merch_id,
                  acc.extra.hcoins);
         let resp = pb::mall::CashPurchaseResponse {
             transaction_id,
@@ -925,7 +951,7 @@ impl Game {
                 }
                 st.claimed.push(true);
                 st.last_day = today;
-                println!("    sign-in {id}: day {} claimed (reward {})", st.claimed.len(), day.reward_id);
+                say!("    sign-in {id}: day {} claimed (reward {})", st.claimed.len(), day.reward_id);
             }
             // one entry per day the campaign has run so far (as captured: day 5 of 1039 had 5); a false entry is a
             // missed day the client shows as "Late", so the days still to come are left out
@@ -954,7 +980,7 @@ impl Game {
                 format!("{} [{days}]{}{}", d.id, if d.is_signed_today { " today" } else { "" }, if d.items.is_empty() { "" } else { " +items" })
             })
             .collect();
-        println!("    sign-ins: {}", shown.join(", "));
+        say!("    sign-ins: {}", shown.join(", "));
         Ok(pb::signin::SignInResponse { datas, final_items }.encode_to_vec())
     }
 
@@ -1018,7 +1044,7 @@ impl Game {
             }
         }
         let final_items = gains.iter().map(|g| acc.item(g.id)).collect();
-        println!("    claimed {} mails: {}{}", valid.len(),
+        say!("    claimed {} mails: {}{}", valid.len(),
                  gains.iter().map(|g| format!("{} x{}", g.id, g.set[0].qty)).collect::<Vec<_>>().join(", "),
                  if over_cap > 0 { format!(" ({over_cap} left unclaimed: over an item's cap)") } else { String::new() });
         let mb = acc.data.mailbox.get_or_insert_with(Default::default);
@@ -1047,7 +1073,7 @@ impl Game {
         Some((|| {
             acc.add(r.item_id, -uses, &self.tables).map_err(|e| e.to_string())?;
             acc.add(ENERGY, uses * i64::from(item.effect_value), &self.tables).map_err(|e| e.to_string())?;
-            println!("    used {uses} x item {} for {} energy", r.item_id, uses * i64::from(item.effect_value));
+            say!("    used {uses} x item {} for {} energy", r.item_id, uses * i64::from(item.effect_value));
             let resp = pb::stage::BuyEnergyResponse {
                 purchase_times: acc.data.basic.as_ref().map(|b| b.energy_purchased).unwrap_or(0),
                 last_item: vec![acc.item(r.item_id), acc.item(ENERGY)],
@@ -1109,7 +1135,7 @@ impl Game {
             } else {
                 pb::yiff::Bound { idx: nb.idx, start_unix: now, char_id: nb.char_id, last_time: now, end_time: 0 }
             };
-            println!("    room {}: character {}", nb.idx, nb.char_id);
+            say!("    room {}: character {}", nb.idx, nb.char_id);
         }
         y.bound.sort_by_key(|b| b.idx);
         Ok(pb::yiff::NewBoundResponse { bound: y.bound.clone() }.encode_to_vec())
@@ -1154,7 +1180,7 @@ impl Game {
         if !end && !reports.is_empty() {
             self.mission_event(acc, 214, 0, 1);
         }
-        println!("    rooms {:?} {}: {}", r.idx, if end { "ended" } else { "collected" },
+        say!("    rooms {:?} {}: {}", r.idx, if end { "ended" } else { "collected" },
                  reports.iter().map(|x| format!("room {} +{}", x.idx, x.exp)).collect::<Vec<_>>().join(", "));
         Ok(pb::yiff::BoundReceiveResponse { reports, remove: end }.encode_to_vec())
     }
@@ -1205,7 +1231,7 @@ impl Game {
         let skin_unlocked = c.skins.contains(&1);
         let item = outfit_item.filter(|_| !skin_unlocked)?;
         let _ = acc.add(item, 1, &self.tables);
-        println!("    character {char_id} reached bond level {lv}: outfit item {item}");
+        say!("    character {char_id} reached bond level {lv}: outfit item {item}");
         Some(pb::item::Item { id: item, set: vec![pb::model::TlQty { qty: 1, unix: 0 }] })
     }
 
@@ -1237,7 +1263,7 @@ impl Game {
                 }
             }
         }
-        println!("    hookup with {char_id}: drew {draw:?}");
+        say!("    hookup with {char_id}: drew {draw:?}");
         let resp = pb::yiff::FemdomStartResponse { idx: r.idx, remain_times: y.remain_times, draw_card: draw, exp: 0 };
         Ok(resp.encode_to_vec())
     }
@@ -1290,10 +1316,10 @@ impl Game {
             // a skin in the reply goes into the client's bag and sets FinishYiff
             resp.skin = self.add_bond(acc, char_id, i64::from(gained));
             let f = acc.data.char_bag.iter().flat_map(|b| b.chars.iter()).find(|c| c.id == char_id).and_then(|c| c.femdom.clone()).unwrap_or_default();
-            println!("    character {char_id}: picked {:?} ({perfect} perfect), +{gained} bond EXP -> LV {}, {}",
+            say!("    character {char_id}: picked {:?} ({perfect} perfect), +{gained} bond EXP -> LV {}, {}",
                      r.card_rec, f.lv, f.exp);
         } else {
-            println!("    no character in hookup slot {}, bond EXP not kept", r.idx);
+            say!("    no character in hookup slot {}, bond EXP not kept", r.idx);
         }
         Ok(resp.encode_to_vec())
     }
@@ -1319,7 +1345,7 @@ impl Game {
         self.add_bond(acc, char_id, i64::from(gained));
         self.mission_event(acc, 213, 0, 3 * i64::from(skip));
         self.mission_event(acc, 216, char_id, i64::from(skip));
-        println!("    hookup skip x{skip} with {char_id}: +{gained} bond EXP, {remain} entries left");
+        say!("    hookup skip x{skip} with {char_id}: +{gained} bond EXP, {remain} entries left");
         Ok(pb::yiff::FemdomStartResponse { idx, remain_times: remain, draw_card: vec![], exp: gained }.encode_to_vec())
     }
 }
@@ -1430,7 +1456,7 @@ fn guide_step(acc: &mut Account, path: &str) -> Result<Vec<u8>, String> {
     }
     let b = acc.data.basic.get_or_insert_with(Default::default);
     b.guide_rec |= 1 << (n - 1);
-    println!("    guide step {n} done (guide_rec {:#x})", b.guide_rec);
+    say!("    guide step {n} done (guide_rec {:#x})", b.guide_rec);
     Ok(Vec::new())
 }
 
@@ -1449,7 +1475,7 @@ fn guide_skip(acc: &mut Account) -> Vec<u8> {
             t
         }
     };
-    println!("    tutorial skipped, team {:?}", team.chars);
+    say!("    tutorial skipped, team {:?}", team.chars);
     team.encode_to_vec()
 }
 
@@ -1497,7 +1523,7 @@ fn team_display(acc: &mut Account, req: &[u8]) -> Result<Vec<u8>, String> {
         Some(x) => *x = team.clone(),
         None => bag.display_teams.push(team.clone()),
     }
-    println!("    display team {}: {:?}", team.idx, team.chars);
+    say!("    display team {}: {:?}", team.idx, team.chars);
     Ok(team.encode_to_vec())
 }
 
@@ -1517,7 +1543,7 @@ fn team_challenge(tables: &crate::tables::Tables, acc: &mut Account, req: &[u8])
         t => return Err(format!("no challenge team type {t}")),
     };
     *slot = Some(team.clone());
-    println!("    challenge team {}: {:?}", team.idx, team.chars);
+    say!("    challenge team {}: {:?}", team.idx, team.chars);
     Ok(team.encode_to_vec())
 }
 
@@ -1565,7 +1591,7 @@ fn team_multi(tables: &crate::tables::Tables, acc: &mut Account, req: &[u8]) -> 
         let idx = set.teams.len() as i32;
         set.teams.push(pb::character::TeamInfo { idx, ..Default::default() });
     }
-    println!("    multi team (limit {}, {} teams) team {i}: {:?}", r.limit_type, r.team_type, team.chars);
+    say!("    multi team (limit {}, {} teams) team {i}: {:?}", r.limit_type, r.team_type, team.chars);
     set.teams[i] = team;
     Ok(Vec::new())
 }
@@ -1585,7 +1611,7 @@ fn team_battle(tables: &crate::tables::Tables, acc: &mut Account, req: &[u8]) ->
         Some(x) => *x = team.clone(),
         None => bag.battle_teams.push(team.clone()),
     }
-    println!("    team {}: {:?}", team.idx, team.chars);
+    say!("    team {}: {:?}", team.idx, team.chars);
     Ok(team.encode_to_vec())
 }
 
@@ -1734,7 +1760,7 @@ impl Game {
         if let Some(b) = acc.data.basic.as_mut() {
             b.created = now;
         }
-        println!("    newcomer events {moved:?} start today");
+        say!("    newcomer events {moved:?} start today");
     }
 }
 
@@ -1785,6 +1811,12 @@ fn send_mail(acc: &mut Account, product_id: i32, rewards: Vec<pb::item::Item>) -
 /// Put a mail with its own title and text in the account's mailbox (mail text 0; the client reads the subject and
 /// content as JSON by language, as in the captured notice mails). Returns the mail's serial number.
 pub fn mail_with_text(acc: &mut Account, subject: &str, content: &str, rewards: Vec<pb::item::Item>) -> String {
+    // captured notice mails ran 365 days
+    mail_with_text_for(acc, subject, content, rewards, 365)
+}
+
+/// The same with its own life in days (0: no end).
+pub fn mail_with_text_for(acc: &mut Account, subject: &str, content: &str, rewards: Vec<pb::item::Item>, days: i64) -> String {
     let by_lang = |text: &str| {
         let mut m = serde_json::Map::new();
         for lang in ["zhHant", "zhHans", "en", "ja", "ko"] {
@@ -1801,8 +1833,7 @@ pub fn mail_with_text(acc: &mut Account, subject: &str, content: &str, rewards: 
         sender: 0,
         mail_text: Some(pb::mail::MailText { id: 0, subject: by_lang(subject), content: by_lang(content), ..Default::default() }),
         rewards,
-        // captured notice mails ran 365 days
-        exp_secs: now + 365 * 86_400,
+        exp_secs: if days > 0 { now + days * 86_400 } else { 0 },
         ts: now,
     });
     mb.version = now_micros();
@@ -1818,6 +1849,30 @@ const MAIL_DISPLAY_ONLY: u32 = 4;
 const MAIL_BROADCAST: u32 = 8;
 /// how long a claimed mail stays in History (captured: claim time + 30 days)
 const MAIL_HISTORY_SECS: i64 = 30 * 86_400;
+
+/// What became of a mail: claimed, waiting to be claimed, read or not read yet.
+pub fn mail_state(m: &pb::mail::Mail) -> &'static str {
+    if !m.rewards.is_empty() && m.flag & MAIL_DISPLAY_ONLY == 0 {
+        if m.flag & MAIL_CLAIMED != 0 { "claimed" } else { "unclaimed" }
+    } else if m.flag & MAIL_READ != 0 {
+        "read"
+    } else {
+        "unread"
+    }
+}
+
+/// Admin: take a mail out of the mailbox before its rewards are claimed (a claimed mail is history: its items are
+/// in the bag already).
+pub fn take_back_mail(acc: &mut Account, sn: &str) -> Result<(), String> {
+    let mb = acc.data.mailbox.get_or_insert_with(Default::default);
+    let Some(m) = mb.mails.iter().find(|m| m.sn == sn) else { return Err(format!("no mail {sn} in this mailbox")) };
+    if m.flag & MAIL_CLAIMED != 0 {
+        return Err("that mail's rewards are claimed already".into());
+    }
+    mb.mails.retain(|m| m.sn != sn);
+    mb.version = now_micros();
+    Ok(())
+}
 
 /// Seconds the game clock runs ahead of real time. Only a test instance moves it (WOOFIA_TEST_CLOCK, admin
 /// /admin/clock), so tests can play out day changes; the client follows through /server_time.
@@ -1881,7 +1936,7 @@ fn mail_remove(acc: &mut Account, req: &[u8]) -> Result<Vec<u8>, String> {
     let removed: Vec<String> = mb.mails.iter().filter(|m| removable(m)).map(|m| m.sn.clone()).collect();
     mb.mails.retain(|m| !removed.contains(&m.sn));
     mb.version = now_micros();
-    println!("    removed {} mails", removed.len());
+    say!("    removed {} mails", removed.len());
     Ok(pb::mail::RemoveMailsResponse { version: mb.version, sn: removed }.encode_to_vec())
 }
 

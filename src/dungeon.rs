@@ -557,7 +557,7 @@ impl Game {
             "stats" => self.dungeon_stats(acc),
             "buy/energy" => self.dungeon_buy_energy(acc, req),
             _ => {
-                println!("    escape room: {method} {rest} is not done yet");
+                say!("    escape room: {method} {rest} is not done yet");
                 return None;
             }
         };
@@ -567,7 +567,7 @@ impl Game {
             let not_in_guild = why == "not in a guild";
             let code = |c: i32| if not_in_guild { 1 } else { c };
             let room_code = code(if why.starts_with("Unlock failed") { 5 } else { 2 });
-            println!("    escape room: {rest} refused ({why})");
+            say!("    escape room: {rest} refused ({why})");
             Ok(match rest {
                 "cell/reveal" => pb::guildbattle::GuildDungeonRevealCellResponse { code: room_code, ..Default::default() }.encode_to_vec(),
                 "cell" | "cell/" => pb::guildbattle::GuildDungeonCellResponse { code: room_code, ..Default::default() }.encode_to_vec(),
@@ -658,7 +658,7 @@ impl Game {
         let resp = pb::guildbattle::GuildDungeonCellResponse { cells: cells.to_vec(), version, sender_id: me, ..Default::default() };
         if let Some(json) = crate::sse::cell_json(&resp) {
             let n = self.dungeon_feed.send(crate::sse::Update { guild, floor, json: json.into() }).unwrap_or(0);
-            println!("    escape room: {} room(s) on floor {floor} sent to {n} live stream(s)", cells.len());
+            say!("    escape room: {} room(s) on floor {floor} sent to {n} live stream(s)", cells.len());
         }
     }
 
@@ -735,7 +735,7 @@ impl Game {
         acc.add(energy, -i64::from(cost), &self.tables).map_err(|e| e.to_string())?;
         let gp = cost * t.constant("gpt_per_energy", 1);
         acc.add(GUILD_PT, i64::from(gp), &self.tables).map_err(|e| e.to_string())?;
-        println!("    escape room: room {},{} on floor {} revealed", r.x, r.y, r.floor);
+        say!("    escape room: room {},{} on floor {} revealed", r.x, r.y, r.floor);
         self.dungeon_publish(me, r.floor, &cells, version);
         let mut ids = r.sync_item_ids.clone();
         ids.push(GUILD_PT);
@@ -763,7 +763,7 @@ impl Game {
         let ((stars, level, ok), _) = self.with_dungeon(acc, |g, d, maps, state, file| {
             let given = d.donated.get(&me).filter(|x| x.0 == today).map_or(0, |x| x.1);
             if !enough || state != STATE_PREPARE || file.joined.get(&me) == Some(&today) || total == 0 || given + total > limit {
-                println!("    escape room: {total} stars refused ({given} of {limit} given today, state {state})");
+                say!("    escape room: {total} stars refused ({given} of {limit} given today, state {state})");
                 return Ok((d.stars.to_vec(), d.level, false));
             }
             for c in 0..3 {
@@ -1101,7 +1101,7 @@ impl Game {
         if out.gp > 0 {
             acc.add(GUILD_PT, i64::from(out.gp), &self.tables).map_err(|e| e.to_string())?;
         }
-        println!("    escape room: room {},{} on floor {} used ({} energy, {} Guild Pt, drops {:?})", r.x, r.y, r.floor, out.spend,
+        say!("    escape room: room {},{} on floor {} used ({} energy, {} Guild Pt, drops {:?})", r.x, r.y, r.floor, out.spend,
                  out.gp, out.drops);
         let mut reward: Vec<pb::item::Item> = vec![];
         if out.gp > 0 {
@@ -1176,7 +1176,7 @@ impl Game {
         })?;
         acc.add(energy_item, -i64::from(obj.energy), &self.tables).map_err(|e| e.to_string())?;
         acc.extra.dungeon_battle = Some(DungeonBattle { sn, floor: r.floor, x: r.x, y: r.y, cycle });
-        println!("    escape room: fight {sn} at {},{} on floor {} ({} energy)", r.x, r.y, r.floor, obj.energy);
+        say!("    escape room: fight {sn} at {},{} on floor {} ({} energy)", r.x, r.y, r.floor, obj.energy);
         let mut ids = r.sync_item_ids.clone();
         ids.push(GUILD_PT);
         // other members see the boss fight going on; the fighter's own reply does not
@@ -1211,7 +1211,7 @@ impl Game {
         let me = acc.data.basic.as_ref().map_or(0, |b| b.id);
         let b = acc.extra.dungeon_battle.clone().ok_or("no Escape Room fight to finish")?;
         if r.stage_sn.trim() != b.sn.to_string() {
-            println!("    escape room: fight end for {:?}, the open fight is {}", r.stage_sn, b.sn);
+            say!("    escape room: fight end for {:?}, the open fight is {}", r.stage_sn, b.sn);
         }
         acc.extra.dungeon_battle = None;
         let res = r.battle_res.unwrap_or_default();
@@ -1293,7 +1293,7 @@ impl Game {
             }
             Ok((cells, v, drops, won, boss))
         })?;
-        println!("    escape room: fight {} {} ({}), drops {drops:?}", b.sn, if won { "won" } else { "lost" },
+        say!("    escape room: fight {} {} ({}), drops {drops:?}", b.sn, if won { "won" } else { "lost" },
                  if boss { "boss" } else { "enemy" });
         let ids = [GUILD_PT];
         self.dungeon_publish(me, b.floor, &cells, version);
@@ -1371,7 +1371,7 @@ impl Game {
             }
             d.paid.extend(sent.iter().copied());
             d.settled = true;
-            println!("    escape room: guild {gid} run {} settled, rewards {:?} mailed to {sent:?}", d.cycle, d.rewards);
+            say!("    escape room: guild {gid} run {} settled, rewards {:?} mailed to {sent:?}", d.cycle, d.rewards);
             store.save(gid);
         }
     }

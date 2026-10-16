@@ -366,7 +366,7 @@ impl Game {
             store.save();
             1
         };
-        println!("    {me} follows {}: code {code}", r.target_id);
+        say!("    {me} follows {}: code {code}", r.target_id);
         Ok(pb::follow::SocialFollowResponse { code }.encode_to_vec())
     }
 
@@ -438,7 +438,7 @@ impl Game {
             b.remove(&target);
         }
         store.save();
-        println!("    {me} {} {target}", if add { "blocks" } else { "unblocks" });
+        say!("    {me} {} {target}", if add { "blocks" } else { "unblocks" });
         Ok(Vec::new())
     }
 
@@ -459,7 +459,7 @@ impl Game {
         store.data.pokes.insert(key, today);
         store.interacted(r.target_id);
         store.add_feed(FeedRec { user: me, kind: FEED_POKE, to: r.target_id, ..Default::default() });
-        println!("    {me} pokes {}{}", r.target_id, if r.is_poke_back { " back" } else { "" });
+        say!("    {me} pokes {}{}", r.target_id, if r.is_poke_back { " back" } else { "" });
         Ok(pb::follow::SocialPokeResponse { code: 1 }.encode_to_vec())
     }
 

@@ -45,7 +45,7 @@ impl Game {
         acc.add(ENERGY, i64::from(gives * n), &self.tables).map_err(|e| e.to_string())?;
         let b = acc.data.basic.get_or_insert_with(Default::default);
         b.energy_purchased = bought + n;
-        println!("    bought {} energy for gems ({} buys today)", gives * n, b.energy_purchased);
+        say!("    bought {} energy for gems ({} buys today)", gives * n, b.energy_purchased);
         Ok(pb::stage::BuyEnergyResponse { purchase_times: bought + n, last_item: vec![acc.item(GEM), acc.item(ENERGY)] }
             .encode_to_vec())
     }
@@ -66,7 +66,7 @@ impl Game {
         } else {
             times.purchase_times += 1;
         }
-        println!("    stage {} tries bought: {} with gems, {} with tickets today", r.stage_id, times.purchase_times,
+        say!("    stage {} tries bought: {} with gems, {} with tickets today", r.stage_id, times.purchase_times,
                  times.ticket_exchange);
         let resp = pb::stage::BuyHardTimesResponse {
             purchase_times: times.purchase_times,
@@ -96,7 +96,7 @@ impl Game {
         } else {
             times.purchase_times += 1;
         }
-        println!("    challenge type {} tries bought: {} with gems, {} with tickets today", r.stage_type, times.purchase_times,
+        say!("    challenge type {} tries bought: {} with gems, {} with tickets today", r.stage_type, times.purchase_times,
                  times.ticket_exchange);
         let resp = pb::stage::BuyChallengeTimesResponse {
             purchase_times: times.purchase_times,
@@ -125,7 +125,7 @@ impl Game {
         if !r.use_item {
             y.purchase_times += times;
         }
-        println!("    hookup entries {}, gem buys today {}", y.remain_times, y.purchase_times);
+        say!("    hookup entries {}, gem buys today {}", y.remain_times, y.purchase_times);
         let resp = pb::yiff::FemdomPurchaseResponse { remain_times: y.remain_times, purchase_times: y.purchase_times, last_item: last };
         Ok(resp.encode_to_vec())
     }

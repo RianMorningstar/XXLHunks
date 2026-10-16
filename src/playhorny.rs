@@ -94,6 +94,11 @@ fn ok(data: Value) -> (u16, String) {
     (200, json!({"result": {"code": 1, "msg": "", "http_code": ""}, "data": data}).to_string())
 }
 
+/// A refusal the app shows to the player (the same shape as a wrong password).
+pub fn refused(msg: &str) -> (u16, String) {
+    fail(400, msg)
+}
+
 fn fail(status: u16, msg: &str) -> (u16, String) {
     (status, json!({"result": {"code": 0, "msg": msg, "http_code": status.to_string()}, "data": null}).to_string())
 }
@@ -120,6 +125,20 @@ impl PlayHorny {
         if std::fs::write(&tmp, serde_json::to_vec_pretty(&self.logins).unwrap()).is_ok() {
             let _ = std::fs::rename(&tmp, &self.path);
         }
+    }
+
+    /// Remove a login (its tokens stop working).
+    pub fn remove(&mut self, name: &str) -> bool {
+        let gone = self.logins.remove(&name.trim().to_lowercase()).is_some();
+        if gone {
+            self.save();
+        }
+        gone
+    }
+
+    /// One login by name (lower case).
+    pub fn login(&self, name: &str) -> Option<Login> {
+        self.logins.get(name).cloned()
     }
 
     pub fn names(&self) -> Vec<(String, Login)> {
@@ -230,15 +249,15 @@ impl PlayHorny {
                 let name = req.get("account").and_then(Value::as_str).unwrap_or("").trim().to_lowercase();
                 let password = req.get("password").and_then(Value::as_str).unwrap_or("");
                 let Some(l) = self.logins.get(&name).cloned() else {
-                    println!("    PlayHorny login: unknown login {name:?}");
+                    say!("    PlayHorny login: unknown login {name:?}");
                     return Some(fail(400, "Incorrect account or password."));
                 };
                 if hash_password(&l.salt, password) != l.hash {
-                    println!("    PlayHorny login: wrong password for {name:?}");
+                    say!("    PlayHorny login: wrong password for {name:?}");
                     return Some(fail(400, "Incorrect account or password."));
                 }
                 let (token, refresh) = self.tokens(&name, &l, false);
-                println!("    PlayHorny login: {name} (game {})", l.game_id);
+                say!("    PlayHorny login: {name} (game {})", l.game_id);
                 Some(ok(json!({
                     "token": token,
                     "refresh_token": refresh,

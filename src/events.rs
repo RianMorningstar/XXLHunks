@@ -370,17 +370,17 @@ impl Game {
         let records = match kind {
             BINGO => {
                 let rec = self.bingo_open(acc, r.lottery_id, r.position, &mut gained)?;
-                println!("    bingo {}: cell {} opened, reward {} {gained:?}", r.lottery_id, r.position, rec.reward_id);
+                say!("    bingo {}: cell {} opened, reward {} {gained:?}", r.lottery_id, r.position, rec.reward_id);
                 vec![rec]
             }
             POKING => {
                 let rec = self.poking_open(acc, r.lottery_id, r.position, &mut gained)?;
-                println!("    poking {}: cell {} drew reward {} {gained:?}", r.lottery_id, r.position, rec.reward_id);
+                say!("    poking {}: cell {} drew reward {} {gained:?}", r.lottery_id, r.position, rec.reward_id);
                 vec![rec]
             }
             WHEEL => {
                 let recs = self.wheel_draw(acc, r.lottery_id, r.times, &mut gained)?;
-                println!("    wheel {}: {} draw(s) {gained:?}", r.lottery_id, recs.iter().map(|x| x.times).sum::<i32>());
+                say!("    wheel {}: {} draw(s) {gained:?}", r.lottery_id, recs.iter().map(|x| x.times).sum::<i32>());
                 recs
             }
             k => return Err(format!("lottery {} (type {k}) is not known", r.lottery_id)),
@@ -417,7 +417,7 @@ impl Game {
         if records.is_empty() {
             return Err("nothing to open (no tickets or every cell open)".into());
         }
-        println!("    bingo {}: {} cells opened {gained:?}", r.lottery_id, records.len());
+        say!("    bingo {}: {} cells opened {gained:?}", r.lottery_id, records.len());
         let mut last: Vec<i32> = gained.iter().map(|g| g.0).collect();
         last.push(cost_item);
         last.dedup();
@@ -528,7 +528,7 @@ impl Game {
         if records.is_empty() {
             return Err("nothing to poke (no tickets or every cell open)".into());
         }
-        println!("    poking {id}: {} cells poked {gained:?}", records.len());
+        say!("    poking {id}: {} cells poked {gained:?}", records.len());
         Ok(pb::activity::AutoPokeLotteryResponse {
             records,
             gain_items: items(&merged(&gained)),
@@ -592,7 +592,7 @@ impl Game {
             let _ = i;
         }
         acc.extra.lotteries.entry(id).or_default().steps_claimed |= open;
-        println!("    wheel {id}: step rewards {gained:?}");
+        say!("    wheel {id}: step rewards {gained:?}");
         Ok(pb::activity::LotteryStepRewardResponse { gain_items: items(&merged(&gained)), last_items: last_items(acc, &gained, &[]) }
             .encode_to_vec())
     }
@@ -630,7 +630,7 @@ impl Game {
             .ok_or(format!("no reward for line {line}"))?;
         acc.add(rw.item, i64::from(rw.amount), &self.tables).map_err(|e| e.to_string())?;
         acc.extra.lotteries.entry(id).or_default().lines_claimed |= 1 << line;
-        println!("    bingo {id}: line {line} claimed, {} x {}", rw.amount, rw.item);
+        say!("    bingo {id}: line {line} claimed, {} x {}", rw.amount, rw.item);
         Ok(pb::activity::ClaimBingoLineRewardResponse {
             gain_items: items(&[(rw.item, rw.amount)]),
             last_items: vec![acc.item(rw.item)],
@@ -684,7 +684,7 @@ impl Game {
         self.pay(acc, counts.iter().map(|(&i, &n)| (i, i64::from(n))).collect())?;
         let end_unix = crate::game::now_secs() + recipe.wait;
         acc.extra.cooking.insert(r.event_id, Cooking { items: r.items.clone(), end_unix });
-        println!("    BBQ {}: grilling {counts:?} (dish {}), done at {end_unix}", r.event_id, recipe.result);
+        say!("    BBQ {}: grilling {counts:?} (dish {}), done at {end_unix}", r.event_id, recipe.result);
         Ok(pb::activity::CombineStartResponse { combine_rec: Some(Self::combine_rec(acc, r.event_id)) }.encode_to_vec())
     }
 
@@ -700,7 +700,7 @@ impl Game {
         for &i in &c.items {
             acc.add(i, 1, &self.tables).map_err(|e| e.to_string())?;
         }
-        println!("    BBQ {}: cancelled, {:?} back", r.event_id, c.items);
+        say!("    BBQ {}: cancelled, {:?} back", r.event_id, c.items);
         Ok(pb::activity::CombineCancelResponse { code: 0, combine_rec: Some(Self::combine_rec(acc, r.event_id)) }.encode_to_vec())
     }
 
@@ -734,7 +734,7 @@ impl Game {
         acc.extra.cooking.remove(&r.event_id);
         // mission condition 402: dishes served in the event
         self.mission_event(acc, 402, r.event_id, 1);
-        println!("    BBQ {}: dish {drop} served, {gained:?}", r.event_id);
+        say!("    BBQ {}: dish {drop} served, {gained:?}", r.event_id);
         Ok(pb::activity::CombineClaimResponse {
             gain_items: items(&gained),
             // the client updates its bag only here, so the cooked ingredients' counts come along

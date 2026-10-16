@@ -12,8 +12,6 @@
 //!   Mega and DMM purchases (other storefronts' calls; this client build pays through PlayHorny) go through the H
 //!     Coin purchase with the product id the request carries.
 
-use std::collections::BTreeMap;
-
 use prost::Message;
 
 use crate::account::Account;
@@ -37,7 +35,7 @@ impl Game {
             let bonus = self.tables.constant("gacha_preview_bonus", 5.0) as i32;
             acc.add(GEM, i64::from(bonus), &self.tables).map_err(|e| e.to_string())?;
             rewards.push(pb::item::Item { id: GEM, set: vec![pb::model::TlQty { qty: bonus, unix: 0 }] });
-            println!("    gacha {} preview of {}: {bonus} gems", r.gacha_id, r.char_id);
+            say!("    gacha {} preview of {}: {bonus} gems", r.gacha_id, r.char_id);
         }
         Ok(pb::gacha::GachaPreviewResponse { rewards, last_items: vec![acc.item(GEM)] }.encode_to_vec())
     }
@@ -62,7 +60,7 @@ impl Game {
             acc.add(item, i64::from(n), &self.tables).map_err(|e| e.to_string())?;
             step_rewards.push(pb::gacha::StepReward { count, reward: Some(pb::model::CommonReward { kind, param: vec![item, n] }) });
         }
-        println!("    gacha {id} step rewards: {}", step_rewards.len());
+        say!("    gacha {id} step rewards: {}", step_rewards.len());
         Ok(pb::gacha::GachaStepRewardResponse { step_rewards }.encode_to_vec())
     }
 
@@ -117,30 +115,32 @@ impl Game {
             has_first: true,
         };
         changed.dedup();
-        println!("    sign-in {}: day {} made up for {} gems", r.id, data.is_sign_in.iter().filter(|x| **x).count(), first.makeup_price);
+        say!("    sign-in {}: day {} made up for {} gems", r.id, data.is_sign_in.iter().filter(|x| **x).count(), first.makeup_price);
         Ok(pb::signin::SignInFillResponse { data: Some(data), final_items: changed.iter().map(|&i| acc.item(i)).collect() }.encode_to_vec())
     }
 
     pub(crate) fn redeem_code(&self, acc: &mut Account, req: &[u8]) -> Result<Vec<u8>, String> {
         let r = pb::vc::VcExchangeRequest::decode(req).map_err(|e| e.to_string())?;
         let code = r.code.trim().to_uppercase();
-        let codes: BTreeMap<String, Vec<(i32, i32)>> = std::fs::read(self.data_dir.join("codes.json"))
-            .ok()
-            .and_then(|b| serde_json::from_slice(&b).ok())
-            .unwrap_or_default();
-        let (res_code, rewards) = match codes.get(&code) {
+        let me = acc.data.basic.as_ref().map_or(0, |b| b.id);
+        let now = now_secs();
+        let (res_code, rewards) = crate::manage::with_codes(&self.data_dir, |codes| match codes.get_mut(&code) {
             None => (2, vec![]),
+            Some(c) if c.off => (2, vec![]),
             Some(_) if acc.extra.redeemed.contains(&code) => (3, vec![]),
-            Some(items) => {
+            // past its date, or every use taken: "expired"
+            Some(c) if (c.expires > 0 && now >= c.expires) || (c.limit > 0 && c.used.len() as u32 >= c.limit) => (1, vec![]),
+            Some(c) => {
                 // the rewards come by mail (the code screen only learns whether the code worked)
                 let rewards: Vec<pb::item::Item> =
-                    items.iter().map(|&(id, n)| pb::item::Item { id, set: vec![pb::model::TlQty { qty: n, unix: 0 }] }).collect();
+                    c.rewards.iter().map(|&(id, n)| pb::item::Item { id, set: vec![pb::model::TlQty { qty: n, unix: 0 }] }).collect();
                 crate::game::mail_with_text(acc, "Redeem Code Reward", &format!("Here is your reward for the code {code}."), rewards.clone());
                 acc.extra.redeemed.insert(code.clone());
+                c.used.insert(me, now);
                 (0, rewards)
             }
-        };
-        println!("    redeem code {code:?}: result {res_code}");
+        });
+        say!("    redeem code {code:?}: result {res_code}");
         Ok(pb::vc::VcExchangeResponse { res_code, rewards }.encode_to_vec())
     }
 

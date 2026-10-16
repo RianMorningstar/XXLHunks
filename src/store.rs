@@ -152,7 +152,7 @@ impl Game {
             let stores = acc.data.store.get_or_insert_with(Default::default);
             if let Some(s) = stores.stores.iter_mut().find(|s| s.store_id == id) {
                 self.restock(id, s);
-                println!("    store {id} restocked ({} goods)", s.products.len());
+                say!("    store {id} restocked ({} goods)", s.products.len());
             }
         }
     }
@@ -182,7 +182,7 @@ impl Game {
                     stores.stores.push(s);
                 }
             }
-            println!("    event store {id} (event {}) stocked for the run from {start}", def.event);
+            say!("    event store {id} (event {}) stocked for the run from {start}", def.event);
         }
     }
 
@@ -220,7 +220,7 @@ impl Game {
         self.restock(r.store_id, s);
         s.refresh_times = done + 1;
         let store = s.clone();
-        println!("    store {} refreshed by hand ({} today)", r.store_id, store.refresh_times);
+        say!("    store {} refreshed by hand ({} today)", r.store_id, store.refresh_times);
         Ok(pb::store::StoreRefreshResponse {
             refresh_count: store.refresh_times,
             store: Some(store),
@@ -275,7 +275,7 @@ impl Game {
         if gained > 0 {
             acc.add(ESSENCE, gained, &self.tables).map_err(|e| e.to_string())?;
         }
-        println!("    essence: {} kinds of spare shards into {gained} essence", pieces.len());
+        say!("    essence: {} kinds of spare shards into {gained} essence", pieces.len());
         let serums = pb::item::Item { id: ESSENCE, set: vec![pb::model::TlQty { qty: gained.min(i64::from(i32::MAX)) as i32, unix: 0 }] };
         Ok(pb::store::PieceChangeResponse { pieces, serums: Some(serums) }.encode_to_vec())
     }

@@ -56,7 +56,7 @@ impl Game {
         let list = &mut acc.extra.memories.recalled;
         if !list.contains(&r.memory_id) {
             list.push(r.memory_id);
-            println!("    memory {} replayed for the first time", r.memory_id);
+            say!("    memory {} replayed for the first time", r.memory_id);
         }
         Ok(pb::memory::MemoryRecallResponse { code: 1 }.encode_to_vec())
     }

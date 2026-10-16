@@ -216,7 +216,7 @@ impl Game {
         let mut store = self.votes.lock().unwrap();
         let total = store.totals.entry(v.vote_event).or_default().entry(r.group_id).or_default().entry(r.option_id).or_default();
         *total += n;
-        println!("    vote: {} vote(s) for {} in event {} ({} now), {} x{} paid, {:?} gained", r.count, r.option_id, v.vote_event,
+        say!("    vote: {} vote(s) for {} in event {} ({} now), {} x{} paid, {:?} gained", r.count, r.option_id, v.vote_event,
                  total, v.cost.0, n * i64::from(v.cost.1), gained);
         store.save();
         Ok(pb::activity::VoteResponse { gain_items: items(&gained), last_items: vec![acc.item(v.gain.0), acc.item(v.cost.0)] }
@@ -275,7 +275,7 @@ impl Game {
         for &(id, n) in &gained {
             acc.add(id, i64::from(n), &self.tables).map_err(|e| e.to_string())?;
         }
-        println!("    find character {}: {star}/{} stars{}", r.id, stage.amount, if first { format!(", first clear {gained:?}") } else { String::new() });
+        say!("    find character {}: {star}/{} stars{}", r.id, stage.amount, if first { format!(", first clear {gained:?}") } else { String::new() });
         Ok(pb::activity::FindCharRewardResponse {
             gain_items: items(&gained),
             last_items: gained.iter().map(|&(id, _)| acc.item(id)).collect(),
@@ -310,7 +310,7 @@ impl Game {
         for &(id, n) in &gained {
             acc.add(id, i64::from(n), &self.tables).map_err(|e| e.to_string())?;
         }
-        println!("    find character run {run}: star box {} ({need} stars) {gained:?}", r.idx);
+        say!("    find character run {run}: star box {} ({need} stars) {gained:?}", r.idx);
         Ok(pb::activity::FindCharRewardResponse {
             gain_items: items(&gained),
             last_items: gained.iter().map(|&(id, _)| acc.item(id)).collect(),
